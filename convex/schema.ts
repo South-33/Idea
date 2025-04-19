@@ -14,6 +14,7 @@ const applicationTables = {
       reasoning: v.string(),
       feasibility: v.string(),
       similarIdeas: v.string(),
+      summary: v.optional(v.string()),
     })),
   }).index("by_user", ["userId"]),
 };

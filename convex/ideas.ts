@@ -79,6 +79,7 @@ export const updateAnalysis = mutation({
       reasoning: v.string(),
       feasibility: v.string(),
       similarIdeas: v.string(),
+      summary: v.string(),
     }),
   },
   handler: async (ctx, args) => {

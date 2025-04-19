@@ -12,6 +12,7 @@ type Idea = {
     reasoning?: string;
     feasibility?: string;
     similarIdeas?: string;
+    summary?: string;
   };
   status?: "pending" | "analyzed"; // Restore status
 };
@@ -26,21 +27,15 @@ type IdeaCardProps = {
 export function IdeaCard({ idea, onDelete, isExpanded, onToggleExpand }: IdeaCardProps) {
   // Determine card background based on score (subtler than before)
   const score = idea.analysis?.score;
-  const scoreBgClass = idea.status === "analyzed" && score !== undefined
-    ? score >= 8 ? 'border-l-4 border-green-300'
-    : score >= 5 ? 'border-l-4 border-yellow-300'
-    : 'border-l-4 border-red-300'
-    : '';
-
   return (
     <div
       key={idea._id}
-      className={`relative bg-white rounded-xl p-6 shadow-md overflow-hidden transition-all duration-300 ${scoreBgClass}`} // Adjusted rounding, added overflow/transition
+      className={`relative bg-white rounded-xl p-6 shadow-md overflow-hidden transition-all duration-300 border border-border-grey`} // Adjusted rounding, added overflow/transition
     >
       {/* Delete Button - Top Right */}
       <button
         onClick={() => onDelete(idea._id)}
-        className="absolute top-3 right-3 p-1 rounded text-red-400 hover:text-red-600 hover:bg-red-100 transition-colors"
+        className="absolute top-3 right-3 p-1 rounded text-dark-grey-text hover:text-red-600 hover:bg-red-100 transition-colors"
         title="Delete"
       >
         {/* Using a simple SVG for 'X' might look cleaner */}
@@ -50,55 +45,63 @@ export function IdeaCard({ idea, onDelete, isExpanded, onToggleExpand }: IdeaCar
       </button>
 
       {/* Header */}
-      <div className="flex items-center mb-4 text-gray-400 text-sm font-medium">
+      <div className="flex items-center mb-4 text-dark-grey-text text-sm border-b border-gray-200 pb-3 mb-3">
         {'< Notes'}
       </div>
 
       {/* Content - Make clickable for expansion */}
       <div className="cursor-pointer" onClick={onToggleExpand}>
         {idea.status === "pending" ? (
-          <div className="flex items-center gap-2 text-slate-500">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500"></div>
+          <div className="flex items-center gap-2 text-dark-grey-text">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-dark-grey-text"></div>
             Analyzing...
           </div>
         ) : idea.analysis ? (
           <div className="space-y-3">
             {/* Always visible Title and Score */}
-            <div className="flex items-center justify-between">
-              <span className="text-lg font-medium text-gray-800">{idea.analysis.title}</span>
-              <span className="text-sm font-semibold bg-gray-100 rounded-full px-2.5 py-0.5 border border-gray-200 shadow-sm">
+            <div className={`flex items-center justify-between ${isExpanded || (!isExpanded && idea.analysis) ? 'border-b border-gray-200 pb-3 mb-3' : ''}`}>
+              <span className="text-lg text-dark-grey-text font-semibold">{idea.analysis.title}</span>
+              <span className={`text-sm bg-gray-75 rounded-full px-2.5 py-0.5 border shadow-sm ${
+                idea.status === "analyzed" && score !== undefined
+                  ? score >= 8 ? 'border-green-300'
+                  : score >= 5 ? 'border-soft-gold'
+                  : 'border-red-300'
+                  : 'border-border-grey' // Default border color if not analyzed or score is undefined
+              }`}>
                 {idea.analysis.score}/10
               </span>
             </div>
-
-            {/* Collapsible Content - Added overflow-y-auto and hide-scrollbar */}
+            {/* AI Summary (non-expanded) */}
+            {!isExpanded && idea.analysis?.summary && (
+             <p className="text-sm text-dark-grey-text mt-2">
+               {idea.analysis.summary}
+             </p>
+           )}
+           {/* Collapsible Content - Added overflow-y-auto and hide-scrollbar */}
             <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
               isExpanded ? 'max-h-[500px] opacity-100 pt-2 overflow-y-auto hide-scrollbar' : 'max-h-0 opacity-0'
             }`}>
               <div className="space-y-3">
-                 <p className="text-gray-600 italic border-t pt-3 mt-1">{idea.content}</p>
-                 <div>
-                   <span className="font-semibold text-gray-700 text-sm">Reasoning:</span>
-                   <p className="text-gray-600 text-sm">{idea.analysis.reasoning}</p>
+                 <p className="text-dark-grey-text italic">{idea.content}</p>
+                 <div className="border-b border-gray-200 pb-3 mb-3">
+                   <span className="text-dark-grey-text text-sm font-semibold">Reasoning:</span>
+                   <p className="text-dark-grey-text text-sm">{idea.analysis.reasoning}</p>
                  </div>
-                 <div>
-                   <span className="font-semibold text-gray-700 text-sm">Feasibility:</span>
-                   <p className="text-gray-600 text-sm">{idea.analysis.feasibility}</p>
+                 <div className="border-b border-gray-200 pb-3 mb-3">
+                   <span className="text-dark-grey-text text-sm font-semibold">Feasibility:</span>
+                   <p className="text-dark-grey-text text-sm">{idea.analysis.feasibility}</p>
                  </div>
-                 <div>
-                   <span className="font-semibold text-gray-700 text-sm">Similar Ideas:</span>
-                   <p className="text-gray-600 text-sm">{idea.analysis.similarIdeas}</p>
+                 <div className="border-b border-gray-200 pb-3 mb-3">
+                   <span className="text-dark-grey-text text-sm font-semibold">Similar Ideas:</span>
+                   <p className="text-dark-grey-text text-sm">{idea.analysis.similarIdeas}</p>
                  </div>
               </div>
             </div>
             {/* Show hint to expand if collapsed */}
-            {!isExpanded && (
-               <div className="text-xs text-gray-400 text-center pt-1">Click to expand</div>
-            )}
           </div>
         ) : (
           // Fallback if analyzed but no analysis data somehow
-          <p className="text-gray-500">Analysis data unavailable.</p>
+          <p className="text-dark-grey-text">Analysis data unavailable.</p>
         )}
       </div>
 

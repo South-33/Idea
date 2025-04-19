@@ -19,9 +19,11 @@ export const analyzeIdea = action({
       throw new Error("GEMINI_API_KEY not configured");
     }
 
-    const prompt = `Please analyze this idea and provide your response in exactly this format:
+    const prompt = `You are a seasoned venture analyst. Analyze the idea below across dimensions: originality, market potential, execution difficulty but most importantly how much would it change the world and help people (How revolutionary it could be). Also be a bit optimistic if it's a real idea, but if it's not a real idea for example random words, be very critic and give it a very low rating. You must evaluate this idea independently. Do not infer the score from the input or guess based on phrasing. Base your score strictly on analysis across key factors.
+ then provide your response in exactly this format:
 Score: [number between 1-10]
 Title: [short 3-5 word summary]
+Summary: [exactly 200 characters long brief summary of the idea]
 Reasoning: [brief explanation of the score]
 Feasibility: [assessment of how feasible the idea is]
 Similar Ideas: [existing similar ideas or products]
@@ -31,7 +33,7 @@ The idea to analyze is: ${idea.content}
 Remember to strictly follow the format with the exact labels and line breaks as shown above.`;
 
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-04-17" });
       const result = await model.generateContent(prompt);
       const content = result.response.text();
       
@@ -45,8 +47,9 @@ Remember to strictly follow the format with the exact labels and line breaks as 
       const reasoningMatch = content.match(/Reasoning:\s*([^\n]+)/);
       const feasibilityMatch = content.match(/Feasibility:\s*([^\n]+)/);
       const similarIdeasMatch = content.match(/Similar Ideas:\s*([^\n]+)/);
-
-      if (!scoreMatch || !titleMatch || !reasoningMatch || !feasibilityMatch || !similarIdeasMatch) {
+      const summaryMatch = content.match(/Summary:\s*([^\n]+)/);
+      
+            if (!scoreMatch || !titleMatch || !reasoningMatch || !feasibilityMatch || !similarIdeasMatch || !summaryMatch) {
         console.error("Failed to parse AI response:", content);
         throw new Error("Invalid AI response format");
       }
@@ -57,6 +60,7 @@ Remember to strictly follow the format with the exact labels and line breaks as 
         reasoning: reasoningMatch[1].trim(),
         feasibility: feasibilityMatch[1].trim(),
         similarIdeas: similarIdeasMatch[1].trim(),
+        summary: summaryMatch[1].trim(),
       };
 
       await ctx.runMutation(api.ideas.updateAnalysis, {
@@ -74,6 +78,7 @@ Remember to strictly follow the format with the exact labels and line breaks as 
           reasoning: `Error: ${errorMessage}`,
           feasibility: "Unable to assess",
           similarIdeas: "Unable to find similar ideas",
+          summary: "Analysis failed to generate a summary.",
         },
       });
     }

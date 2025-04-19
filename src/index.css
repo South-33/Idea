@@ -12,7 +12,7 @@
 }
 
 .button {
-  @apply bg-gradient-to-r bg-blue-500;
+  @apply bg-white text-dark-grey-text rounded-lg transition-colors border border-border-grey;
 }
 
 body {
@@ -20,6 +20,7 @@ body {
   color: var(--color-dark);
   background: var(--color-light);
   overflow-y: scroll; /* Prevent layout shift when scrollbar appears */
+  @apply font-thin; /* Apply thin font weight */
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
@@ -35,15 +36,15 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 }
 
 .input-field {
-  @apply w-full px-3 py-2 rounded-md bg-transparent border-2 border-slate-200 focus:outline-none focus:border-blue-500 transition-colors;
+  @apply w-full px-3 py-2 rounded-md bg-transparent border-2 border-border-grey focus:outline-none focus:border-border-grey transition-colors;
 }
 
 .auth-button {
-  @apply w-full py-2 rounded-md text-white font-medium button hover:opacity-90 transition-opacity;
+  @apply w-full py-2 button hover:opacity-90;
 }
 
 .link-text {
-  @apply text-blue-500 hover:underline cursor-pointer font-medium;
+  @apply text-dark-grey-text hover:underline cursor-pointer;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */

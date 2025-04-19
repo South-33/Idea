@@ -9,7 +9,7 @@ export function SignInForm() {
   const [submitting, setSubmitting] = useState(false);
 
   return (
-    <div className="w-full">
+    <div className="w-full border border-border-grey rounded-lg p-6 bg-white shadow-md"> {/* Added border and padding */}
       <form
         className="flex flex-col gap-4"
         onSubmit={(e) => {
@@ -32,11 +32,11 @@ export function SignInForm() {
         <button className="auth-button" type="submit" disabled={submitting}>
           {flow === "signIn" ? "Sign in" : "Sign up"}
         </button>
-        <div className="text-center text-sm text-slate-600">
+        <div className="text-center text-sm text-dark-grey-text">
           <span>{flow === "signIn" ? "Don't have an account? " : "Already have an account? "}</span>
           <button
             type="button"
-            className="text-blue-500 cursor-pointer"
+            className="text-dark-grey-text cursor-pointer"
             onClick={() => setFlow(flow === "signIn" ? "signUp" : "signIn")}
           >
             {flow === "signIn" ? "Sign up instead" : "Sign in instead"}
@@ -45,7 +45,7 @@ export function SignInForm() {
       </form>
       <div className="flex items-center justify-center my-3">
           <hr className="my-4 grow" />
-          <span className="mx-4 text-slate-400 ">or</span>
+          <span className="mx-4 text-dark-grey-text ">or</span>
           <hr className="my-4 grow" />
         </div>
         <button className="auth-button" onClick={() => void signIn("anonymous")}>
