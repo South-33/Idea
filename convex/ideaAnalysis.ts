@@ -19,11 +19,11 @@ export const analyzeIdea = action({
       throw new Error("GEMINI_API_KEY not configured");
     }
 
-    const prompt = `You are a seasoned venture analyst. Analyze the idea below across dimensions: originality, market potential, execution difficulty but most importantly how much would it change the world and help people (How revolutionary it could be). Also be a bit optimistic if it's a real idea, but if it's not a real idea for example random words, be very critic and give it a very low rating. You must evaluate this idea independently. Do not infer the score from the input or guess based on phrasing. Base your score strictly on analysis across key factors.
+    const prompt = `You are a seasoned venture analyst. Analyze the idea below across dimensions: originality, market potential, execution difficulty but most importantly how much would it change the world and help people. Also be a bit optimistic if it's a real idea, but if it's not a real idea for example random words, be very critic and give it a very low rating. You must evaluate this idea independently. Do not infer the score from the input or guess based on phrasing. Base your score strictly on analysis across key factors.
  then provide your response in exactly this format:
 Score: [number between 1-10]
 Title: [short 3-5 word summary]
-Summary: [exactly 200 characters long brief summary of the idea]
+Summary: [brief summary of the idea]
 Reasoning: [brief explanation of the score]
 Feasibility: [assessment of how feasible the idea is]
 Similar Ideas: [existing similar ideas or products]
