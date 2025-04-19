@@ -11,7 +11,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-100"> {/* Updated background */}
       <header className="sticky top-0 z-10 bg-white shadow-sm p-4 flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-indigo-600">Ideaaa Analyzer</h2>
+        <h2 className="text-xl font-semibold text-indigo-600">Idea Analyzer</h2>
         <SignOutButton />
       </header>
       <main className="flex-1 p-4 md:p-8">
