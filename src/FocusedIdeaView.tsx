@@ -46,7 +46,7 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
   const cardRef = useRef<HTMLDivElement>(null); // Ref for the card element
   const zoomControlRef = useRef<HTMLDivElement>(null); // Ref for the zoom control element
   const [cardMaxHeight, setCardMaxHeight] = useState<number | null>(null); // State for dynamic max height
-
+  const [isAnimatingIn, setIsAnimatingIn] = useState(false); // State for animation
   // Convex actions/mutations
   const reanalyzeIdea = useAction(api.ideaAnalysis.analyzeIdea);
   const updateIdea = useMutation(api.ideas.updateIdea); // Assuming this mutation exists
@@ -122,22 +122,40 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
     };
   }, [scale]); // Add scale to dependency array so handleWheel always has the latest scale value
 
+  // Effect to handle the mounting/unmounting animation
+  useEffect(() => {
+    // Set isAnimatingIn to true after a short delay on mount
+    const timer = setTimeout(() => {
+      setIsAnimatingIn(true);
+    }, 50); // Small delay to ensure component is in DOM
+
+    // Cleanup function to set isAnimatingIn to false on unmount
+    return () => {
+      setIsAnimatingIn(false);
+      clearTimeout(timer); // Clear the timer if component unmounts before delay
+    };
+  }, []); // Empty dependency array means this runs only on mount and unmount
+
   return (
     <>
     <div
       id="focused-idea-backdrop" // Added ID for mouseleave listener
       className="fixed inset-0 bg-black bg-opacity-[0.2] backdrop-blur-sm flex justify-center items-center z-50 p-4"
       onClick={onClose} // Close when clicking the backdrop
+      style={{ perspective: '1000px' }} // Add perspective for 3D transform
     >
       {/* Outer Scrollable Container */}
       <div
         ref={cardRef} // Attach the ref
         className="relative bg-white rounded-xl max-w-2xl w-full overflow-y-auto hide-scrollbar border-2 border-border-grey min-h-0"
         style={{
-           ...focusedIdea.analysis?.score !== undefined ? { boxShadow: '0 0 120px 27px rgba(255, 255, 255, 0.5)' } : {}, // Keep the glow conditionally
-           transform: `scale(${scale})`, // Apply scale transform
+           ...focusedIdea.analysis?.score !== undefined && !isAnimatingIn ? { boxShadow: '0 0 120px 27px rgba(255, 255, 255, 0.5)' } : {}, // Keep the glow conditionally, but not when animating in
+           boxShadow: isAnimatingIn ? '0 50px 75px -20px rgba(0, 0, 0, 0.3)' : (focusedIdea.analysis?.score !== undefined ? '0 0 120px 27px rgba(255, 255, 255, 0.5)' : 'none'), // Conditional box shadow based on animation state (more pronounced)
+           transform: `scale(${scale}) ${isAnimatingIn ? 'translateZ(40px)' : 'translateZ(0px)'}`, // Apply scale and translateZ transform based on animation state (increased lift)
            transformOrigin: 'center', // Scale from center
-           transition: 'transform 0.1s ease-out', // Smooth transition
+           transformStyle: 'preserve-3d', // Preserve 3D transformations for children
+           backfaceVisibility: 'hidden', // Hide backface during transform
+           transition: 'transform 0.2s ease-out, box-shadow 0.22s ease-out', // Smooth transition for transform and box-shadow
            maxHeight: cardMaxHeight !== null ? `${cardMaxHeight}px` : undefined, // Apply dynamic max height
            maxWidth: 'calc(48rem * 1.3)',
         }}
