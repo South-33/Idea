@@ -36,7 +36,7 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
   const isLast = currentIndex === allIdeas.length - 1;
 
   // State for scaling/zooming and editing
-  const [scale, setScale] = useState(1);
+  const [scale, setScale] = useState(1.2);
   const [zoomPercentage, setZoomPercentage] = useState(100); // State for displayed zoom percentage
   const [fontSize, setFontSize] = useState('text-base'); // State for font size
   const [isEditing, setIsEditing] = useState(false); // State for editing mode
@@ -76,7 +76,7 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
     >
       {/* Outer Scrollable Container */}
       <div
-        className="relative bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto hide-scrollbar border-2 border-border-grey"
+        className="relative bg-white rounded-xl max-w-2xl w-full aspect-[3/2] overflow-y-auto hide-scrollbar border-2 border-border-grey"
         style={{
            boxShadow: '0 0 120px 27px rgba(255, 255, 255, 0.5)', // Keep the glow
            transform: `scale(${scale})`, // Apply scale transform
@@ -129,15 +129,15 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
                )}
                <div className="border-t border-gray-200 pt-3 mt-3">
                  <span className="text-dark-grey-text text-md font-semibold">Reasoning:</span>
-                 <p className="text-dark-grey-text text-sm mt-1">{focusedIdea.analysis.reasoning}</p>
+                 <p className="text-dark-grey-text mt-1">{focusedIdea.analysis.reasoning}</p>
                </div>
                <div className="border-t border-gray-200 pt-3 mt-3">
                  <span className="text-dark-grey-text text-md font-semibold">Feasibility:</span>
-                 <p className="text-dark-grey-text text-sm mt-1">{focusedIdea.analysis.feasibility}</p>
+                 <p className="text-dark-grey-text mt-1">{focusedIdea.analysis.feasibility}</p>
                </div>
                <div className="border-t border-gray-200 pt-3 mt-3">
                  <span className="text-dark-grey-text text-md font-semibold">Similar Ideas:</span>
-                 <p className="text-dark-grey-text text-sm mt-1">{focusedIdea.analysis.similarIdeas}</p>
+                 <p className="text-dark-grey-text mt-1">{focusedIdea.analysis.similarIdeas}</p>
                </div>
             </div>
           </div>
