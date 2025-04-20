@@ -20,11 +20,12 @@ type Idea = {
 type IdeaCardProps = {
   idea: Idea;
   onDelete: (id: Id<"ideas">) => void;
-  isExpanded: boolean;         // Add isExpanded prop
-  onToggleExpand: () => void;  // Add onToggleExpand prop
+  // isExpanded: boolean;      // Removed
+  // onToggleExpand: () => void; // Removed
+  onFocus: () => void;        // Added onFocus prop
 };
 
-export function IdeaCard({ idea, onDelete, isExpanded, onToggleExpand }: IdeaCardProps) {
+export function IdeaCard({ idea, onDelete, onFocus }: IdeaCardProps) { // Updated props
   // Determine card background based on score (subtler than before)
   const score = idea.analysis?.score;
   return (
@@ -50,7 +51,7 @@ export function IdeaCard({ idea, onDelete, isExpanded, onToggleExpand }: IdeaCar
       </div>
 
       {/* Content - Make clickable for expansion */}
-      <div className="cursor-pointer" onClick={onToggleExpand}>
+      <div className="cursor-pointer" onClick={onFocus}> {/* Changed onClick handler */}
         {idea.status === "pending" ? (
           <div className="flex items-center gap-2 text-dark-grey-text">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-dark-grey-text"></div>
@@ -59,7 +60,8 @@ export function IdeaCard({ idea, onDelete, isExpanded, onToggleExpand }: IdeaCar
         ) : idea.analysis ? (
           <div className="space-y-3">
             {/* Always visible Title and Score */}
-            <div className={`flex items-center justify-between ${isExpanded || (!isExpanded && idea.analysis) ? 'border-b border-gray-200 pb-3 mb-3' : ''}`}>
+            {/* Always show title/score with border */}
+            <div className="flex items-center justify-between border-b border-gray-200 pb-3 mb-3">
               <span className="text-lg text-dark-grey-text font-semibold">{idea.analysis.title}</span>
               <span className={`text-sm bg-gray-75 rounded-full px-2.5 py-0.5 border shadow-sm ${
                 idea.status === "analyzed" && score !== undefined
@@ -72,32 +74,13 @@ export function IdeaCard({ idea, onDelete, isExpanded, onToggleExpand }: IdeaCar
               </span>
             </div>
             {/* AI Summary (non-expanded) */}
-            {!isExpanded && idea.analysis?.summary && (
+            {/* Always show summary if available */}
+            {idea.analysis?.summary && (
              <p className="text-sm text-dark-grey-text mt-2">
                {idea.analysis.summary}
              </p>
            )}
-           {/* Collapsible Content - Added overflow-y-auto and hide-scrollbar */}
-            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              isExpanded ? 'max-h-[500px] opacity-100 pt-2 overflow-y-auto hide-scrollbar' : 'max-h-0 opacity-0'
-            }`}>
-              <div className="space-y-3">
-                 <p className="text-dark-grey-text italic">{idea.content}</p>
-                 <div className="border-b border-gray-200 pb-3 mb-3">
-                   <span className="text-dark-grey-text text-sm font-semibold">Reasoning:</span>
-                   <p className="text-dark-grey-text text-sm">{idea.analysis.reasoning}</p>
-                 </div>
-                 <div className="border-b border-gray-200 pb-3 mb-3">
-                   <span className="text-dark-grey-text text-sm font-semibold">Feasibility:</span>
-                   <p className="text-dark-grey-text text-sm">{idea.analysis.feasibility}</p>
-                 </div>
-                 <div className="border-b border-gray-200 pb-3 mb-3">
-                   <span className="text-dark-grey-text text-sm font-semibold">Similar Ideas:</span>
-                   <p className="text-dark-grey-text text-sm">{idea.analysis.similarIdeas}</p>
-                 </div>
-              </div>
-            </div>
-            {/* Show hint to expand if collapsed */}
+            {/* Removed collapsible content div */}
           </div>
         ) : (
           // Fallback if analyzed but no analysis data somehow
