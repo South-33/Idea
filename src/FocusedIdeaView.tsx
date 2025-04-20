@@ -46,6 +46,7 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
   // Convex actions/mutations
   const reanalyzeIdea = useAction(api.ideaAnalysis.analyzeIdea);
   const updateIdea = useMutation(api.ideas.updateIdea); // Assuming this mutation exists
+  const updateIdeaStatus = useMutation(api.ideas.updateIdeaStatus); // Get the new mutation
 
   // Prevent background scroll when modal is open
   useEffect(() => {
@@ -247,7 +248,11 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
           )}
           {/* Re-analyze Button */}
           <button
-            onClick={(e) => { e.stopPropagation(); reanalyzeIdea({ ideaId: focusedIdea._id }); }}
+            onClick={async (e) => { // Make the handler async
+              e.stopPropagation();
+              await updateIdeaStatus({ ideaId: focusedIdea._id, status: "pending" }); // Set status to pending
+              reanalyzeIdea({ ideaId: focusedIdea._id }); // Trigger re-analysis action
+            }}
             className="p-2 rounded-full hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-opacity text-dark-grey-text"
             title="Re-analyze Idea"
           >

@@ -105,3 +105,19 @@ export const updateAnalysis = mutation({
     });
   },
 });
+
+export const updateIdeaStatus = mutation({
+  args: {
+    ideaId: v.id("ideas"),
+    status: v.union(v.literal("pending"), v.literal("analyzed")),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const idea = await ctx.db.get(args.ideaId);
+    if (!idea || idea.userId !== userId) throw new Error("Unauthorized");
+
+    await ctx.db.patch(args.ideaId, { status: args.status });
+  },
+});
