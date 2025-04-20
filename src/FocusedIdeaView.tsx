@@ -47,6 +47,7 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
   const zoomControlRef = useRef<HTMLDivElement>(null); // Ref for the zoom control element
   const [cardMaxHeight, setCardMaxHeight] = useState<number | null>(null); // State for dynamic max height
   const [isAnimatingIn, setIsAnimatingIn] = useState(false); // State for animation
+  const [isBackdropVisible, setIsBackdropVisible] = useState(false); // State for backdrop transition
   // Convex actions/mutations
   const reanalyzeIdea = useAction(api.ideaAnalysis.analyzeIdea);
   const updateIdea = useMutation(api.ideas.updateIdea); // Assuming this mutation exists
@@ -63,6 +64,20 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
       document.body.style.width = ''; // Reset to default
     };
   }, []);
+
+  // Effect to handle backdrop transition
+  useEffect(() => {
+    // Set isBackdropVisible to true after a short delay on mount
+    const timer = setTimeout(() => {
+      setIsBackdropVisible(true);
+    }, 50); // Small delay to ensure component is in DOM
+
+    // Cleanup function to set isBackdropVisible to false on unmount
+    return () => {
+      setIsBackdropVisible(false);
+      clearTimeout(timer); // Clear the timer if component unmounts before delay
+    };
+  }, []); // Empty dependency array means this runs only on mount and unmount
 
   // Handler for zoom slider
   const handleZoomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,7 +155,7 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
     <>
     <div
       id="focused-idea-backdrop" // Added ID for mouseleave listener
-      className="fixed inset-0 bg-black bg-opacity-[0.2] backdrop-blur-sm flex justify-center items-center z-50 p-4"
+      className={`fixed inset-0 bg-black flex justify-center items-center z-50 p-4 transition-all duration-160 ease-in-out ${isBackdropVisible ? 'bg-opacity-[0.2] backdrop-blur-sm' : 'bg-opacity-0 backdrop-blur-none'}`} // Conditionally apply opacity and blur, faster duration
       onClick={onClose} // Close when clicking the backdrop
       style={{ perspective: '1000px' }} // Add perspective for 3D transform
     >
@@ -151,11 +166,11 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
         style={{
            ...focusedIdea.analysis?.score !== undefined && !isAnimatingIn ? { boxShadow: '0 0 120px 27px rgba(255, 255, 255, 0.5)' } : {}, // Keep the glow conditionally, but not when animating in
            boxShadow: isAnimatingIn ? '0 50px 75px -20px rgba(0, 0, 0, 0.3)' : (focusedIdea.analysis?.score !== undefined ? '0 0 120px 27px rgba(255, 255, 255, 0.5)' : 'none'), // Conditional box shadow based on animation state (more pronounced)
-           transform: `scale(${scale}) ${isAnimatingIn ? 'translateZ(40px)' : 'translateZ(0px)'}`, // Apply scale and translateZ transform based on animation state (increased lift)
+           transform: `scale(${scale}) ${isAnimatingIn ? 'translateZ(0px)' : 'translateZ(-70px)'}`, // Apply scale and translateZ transform based on animation state (increased lift)
            transformOrigin: 'center', // Scale from center
            transformStyle: 'preserve-3d', // Preserve 3D transformations for children
            backfaceVisibility: 'hidden', // Hide backface during transform
-           transition: 'transform 0.2s ease-out, box-shadow 0.22s ease-out', // Smooth transition for transform and box-shadow
+           transition: 'transform 0.2s ease-out, box-shadow 0.2s ease-out', // Smooth transition for transform and box-shadow
            maxHeight: cardMaxHeight !== null ? `${cardMaxHeight}px` : undefined, // Apply dynamic max height
            maxWidth: 'calc(48rem * 1.3)',
         }}
@@ -166,7 +181,7 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
         <div
           // This div contains the actual card content and is scaled
           className={`pt-4 pb-7 pl-7 pr-7 ${fontSize}`} // Adjusted padding: increased on top
-          style={{ fontSize: '1.3rem' }}
+          style={{ fontSize: '1.3rem', transform: 'translateZ(0)', textRendering: 'optimizeLegibility' }} // Add translateZ(0) for potential blurriness fix and optimizeLegibility
         >
         {/* Card Content */}
         {focusedIdea.status === "pending" && (

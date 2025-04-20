@@ -162,15 +162,14 @@ function Content() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start"> {/* Updated gap */}
           {ideas.map((idea) => (
-            // Use the new IdeaCard component
-            <IdeaCard
-              key={idea._id}
-              idea={idea}
-              onDelete={handleDelete}
-              // isExpanded prop removed
-              onFocus={() => setFocusedIdeaId(idea._id)} // Pass focus handler
-            />
-          ))}
+              <IdeaCard
+                key={idea._id}
+                idea={idea}
+                onDelete={handleDelete}
+                onFocus={() => setFocusedIdeaId(idea._id)} // Pass focus handler
+                isHidden={idea._id?.toString() === focusedIdeaId?.toString()} // Pass prop for conditional hiding
+              />
+            ))}
         </div>
       </Authenticated>
 
