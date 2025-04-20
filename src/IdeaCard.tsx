@@ -23,15 +23,16 @@ type IdeaCardProps = {
   // isExpanded: boolean;      // Removed
   // onToggleExpand: () => void; // Removed
   onFocus: () => void;        // Added onFocus prop
+  isHidden: boolean; // Added prop for conditional hiding
 };
 
-export function IdeaCard({ idea, onDelete, onFocus }: IdeaCardProps) { // Updated props
+export function IdeaCard({ idea, onDelete, onFocus, isHidden }: IdeaCardProps) { // Updated props to accept isHidden
   // Determine card background based on score (subtler than before)
   const score = idea.analysis?.score;
   return (
     <div
       key={idea._id}
-      className={`relative bg-white rounded-xl p-6 shadow-md overflow-hidden transition-all duration-300 border border-border-grey`} // Adjusted rounding, added overflow/transition
+      className={`relative bg-white rounded-xl p-6 shadow-md overflow-hidden border border-border-grey ${isHidden ? 'invisible' : 'transition-all duration-300'}`} // Conditionally add invisible class and remove transition
     >
       {/* Delete Button - Top Right */}
       <button
