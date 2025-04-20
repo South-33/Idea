@@ -5,7 +5,8 @@ import { SignOutButton } from "./SignOutButton";
 import { Toaster } from "sonner";
 import { useState } from "react";
 import { Id } from "../convex/_generated/dataModel";
-import { IdeaCard } from "./IdeaCard"; // Import the new component
+import { IdeaCard } from "./IdeaCard";
+import { FocusedIdeaView } from "./FocusedIdeaView"; // Import the focused view component
 
 export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -69,7 +70,7 @@ export default function App() {
 
 function Content() {
   const [newIdea, setNewIdea] = useState("");
-  const [expandedIds, setExpandedIds] = useState<Id<"ideas">[]>([]);
+  const [focusedIdeaId, setFocusedIdeaId] = useState<Id<"ideas"> | null>(null); // Changed state for focused view
   const [textareaHeight, setTextareaHeight] = useState('auto');
   const addIdea = useMutation(api.ideas.addIdea);
   const deleteIdea = useMutation(api.ideas.deleteIdea);
@@ -94,10 +95,36 @@ function Content() {
 
   const handleDelete = async (ideaId: Id<"ideas">) => {
     await deleteIdea({ ideaId });
+    // If the deleted idea was focused, close the focus view
+    if (focusedIdeaId === ideaId) {
+      setFocusedIdeaId(null);
+    }
+  };
+
+  // Find the currently focused idea object
+  const focusedIdea = ideas.find(idea => idea._id === focusedIdeaId);
+
+  // Handle navigation between focused ideas
+  const handleNavigate = (direction: 'prev' | 'next') => {
+    if (!focusedIdea || !ideas.length) return;
+
+    const currentIndex = ideas.findIndex(idea => idea._id === focusedIdea._id);
+    let nextIndex;
+
+    if (direction === 'prev') {
+      nextIndex = currentIndex > 0 ? currentIndex - 1 : ideas.length - 1; // Wrap around
+    } else {
+      nextIndex = currentIndex < ideas.length - 1 ? currentIndex + 1 : 0; // Wrap around
+    }
+
+    // Ensure nextIndex is valid before setting
+    if (ideas[nextIndex]) {
+      setFocusedIdeaId(ideas[nextIndex]._id);
+    }
   };
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 relative"> {/* Added relative positioning for modal context */}
       <div className="text-center">
         <Unauthenticated>
           <p className="text-xl text-dark-grey-text">Sign in to start analyzing your ideas</p>
@@ -140,18 +167,22 @@ function Content() {
               key={idea._id}
               idea={idea}
               onDelete={handleDelete}
-              isExpanded={expandedIds.includes(idea._id)} // Pass expansion state
-              onToggleExpand={() => {
-                setExpandedIds(prevExpandedIds =>
-                  prevExpandedIds.includes(idea._id)
-                    ? prevExpandedIds.filter(id => id !== idea._id)
-                    : [...prevExpandedIds, idea._id]
-                );
-              }} // Pass toggle handler
+              // isExpanded prop removed
+              onFocus={() => setFocusedIdeaId(idea._id)} // Pass focus handler
             />
           ))}
         </div>
       </Authenticated>
+
+      {/* Conditionally render the Focused Idea View */}
+      {focusedIdea && (
+        <FocusedIdeaView
+          focusedIdea={focusedIdea}
+          allIdeas={ideas}
+          onClose={() => setFocusedIdeaId(null)}
+          onNavigate={handleNavigate}
+        />
+      )}
     </div>
   );
 }
