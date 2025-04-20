@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Id } from "../convex/_generated/dataModel";
 import { api } from "../convex/_generated/api";
 import { useAction, useMutation } from 'convex/react';
+import { ArrowPathIcon } from '@heroicons/react/24/outline'; // <-- Import the icon
 
 // TODO: Move this interface to a shared types file if used elsewhere
 interface Idea {
@@ -36,12 +37,15 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
   const isLast = currentIndex === allIdeas.length - 1;
 
   // State for scaling/zooming and editing
-  const [scale, setScale] = useState(1.2);
+  const [scale, setScale] = useState(1);
   const [zoomPercentage, setZoomPercentage] = useState(100); // State for displayed zoom percentage
   const [fontSize, setFontSize] = useState('text-base'); // State for font size
   const [isEditing, setIsEditing] = useState(false); // State for editing mode
   const [editedContent, setEditedContent] = useState(focusedIdea.content); // State for edited content
   const [zoomBarHeightClass, setZoomBarHeightClass] = useState('h-4'); // State for zoom bar height
+  const cardRef = useRef<HTMLDivElement>(null); // Ref for the card element
+  const zoomControlRef = useRef<HTMLDivElement>(null); // Ref for the zoom control element
+  const [cardMaxHeight, setCardMaxHeight] = useState<number | null>(null); // State for dynamic max height
 
   // Convex actions/mutations
   const reanalyzeIdea = useAction(api.ideaAnalysis.analyzeIdea);
@@ -51,8 +55,12 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
   // Prevent background scroll when modal is open
   useEffect(() => {
     document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
     return () => {
       document.body.style.overflow = 'unset';
+      document.body.style.position = ''; // Reset to default
+      document.body.style.width = ''; // Reset to default
     };
   }, []);
 
@@ -67,6 +75,53 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
 
   const score = focusedIdea.analysis?.score;
 
+  // Update edited content if the focused idea changes
+  useEffect(() => {
+      setEditedContent(focusedIdea.content);
+      setIsEditing(false); // Reset editing state when idea changes
+  }, [focusedIdea.content, focusedIdea._id]);
+
+
+  // Effect to calculate and set max height based on width and viewport height
+  useEffect(() => {
+    const calculateMaxHeight = () => {
+      if (cardRef.current) {
+        const viewportHeight = window.innerHeight;
+        // Max height is 85% of the viewport height
+        setCardMaxHeight(viewportHeight * 0.85);
+      }
+    };
+
+    calculateMaxHeight(); // Calculate on mount
+    window.addEventListener('resize', calculateMaxHeight); // Recalculate on resize
+
+    return () => {
+      window.removeEventListener('resize', calculateMaxHeight); // Clean up event listener
+    };
+  }, []); // Empty dependency array means this runs once on mount and cleans up on unmount
+
+  // Effect to handle wheel zoom on the zoom control element
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault(); // Prevent default scroll behavior
+      e.stopPropagation(); // Prevent backdrop click
+      const delta = e.deltaY < 0 ? SCROLL_SENSITIVITY : -SCROLL_SENSITIVITY; // Determine zoom direction and step (increased sensitivity)
+      const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale + delta));
+      setScale(newScale);
+      setZoomPercentage(Math.round(newScale * 100));
+    };
+
+    if (zoomControlRef.current) {
+      zoomControlRef.current.addEventListener('wheel', handleWheel, { passive: false });
+    }
+
+    return () => {
+      if (zoomControlRef.current) {
+        zoomControlRef.current.removeEventListener('wheel', handleWheel);
+      }
+    };
+  }, [scale]); // Add scale to dependency array so handleWheel always has the latest scale value
+
   return (
     <>
     <div
@@ -76,12 +131,15 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
     >
       {/* Outer Scrollable Container */}
       <div
-        className="relative bg-white rounded-xl max-w-2xl w-full aspect-[3/2] overflow-y-auto hide-scrollbar border-2 border-border-grey"
+        ref={cardRef} // Attach the ref
+        className="relative bg-white rounded-xl max-w-2xl w-full overflow-y-auto hide-scrollbar border-2 border-border-grey min-h-0"
         style={{
-           boxShadow: '0 0 120px 27px rgba(255, 255, 255, 0.5)', // Keep the glow
+           ...focusedIdea.analysis?.score !== undefined ? { boxShadow: '0 0 120px 27px rgba(255, 255, 255, 0.5)' } : {}, // Keep the glow conditionally
            transform: `scale(${scale})`, // Apply scale transform
            transformOrigin: 'center', // Scale from center
            transition: 'transform 0.1s ease-out', // Smooth transition
+           maxHeight: cardMaxHeight !== null ? `${cardMaxHeight}px` : undefined, // Apply dynamic max height
+           maxWidth: 'calc(48rem * 1.3)',
         }}
         onClick={(e: React.MouseEvent) => e.stopPropagation()} // Prevent closing when clicking inside the card
       >
@@ -89,7 +147,8 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
         {/* This div contains the actual card content and is scaled */}
         <div
           // This div contains the actual card content and is scaled
-          className={`p-6 ${fontSize}`} // Added font size class
+          className={`pt-4 pb-7 pl-7 pr-7 ${fontSize}`} // Adjusted padding: increased on top
+          style={{ fontSize: '1.3rem' }}
         >
         {/* Card Content */}
         {focusedIdea.status === "pending" && (
@@ -123,6 +182,7 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
                    onChange={(e) => setEditedContent(e.target.value)}
                    className="w-full p-2 border rounded text-dark-grey-text"
                    rows={6} // Adjust rows as needed
+                   autoFocus // Focus the textarea when editing starts
                  />
                ) : (
                  <p className="text-dark-grey-text italic">{focusedIdea.content}</p>
@@ -179,6 +239,7 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
           </button>
           {/* Zoom Control */}
           <div
+            ref={zoomControlRef} // Attach the ref
             className="flex items-center text-dark-grey-text cursor-pointer select-none"
             onClick={(e) => {
               e.stopPropagation();
@@ -200,20 +261,6 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
           >
             <span className="font-semibold">{zoomPercentage}%</span>
           </div>
-          {/* Font Size Button */}
-          <button
-            onClick={(e) => { e.stopPropagation(); setFontSize(prevSize => {
-              if (prevSize === 'text-base') return 'text-lg';
-              if (prevSize === 'text-lg') return 'text-xl';
-              return 'text-base'; // Cycle back to base
-            }); }}
-            className="p-2 rounded-full hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-opacity text-dark-grey-text"
-            title="Adjust Font Size"
-          >
-             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-               <path strokeLinecap="round" strokeLinejoin="round" d="m12.75 15-3-3m0 0-3 3m3-3 3-3m-3 3v9m3 9H3.375a2.25 2.25 0 0 1-2.244-2.077Mb75-2.25V4.5a2.25 2.25 0 0 1 2.25-2.25h13.5a2.25 2.25 0 0 1 2.25 2.25v13.5a2.25 2.25 0 0 1-2.25 2.25H12.75Z" />
-             </svg>
-          </button>
           {/* Edit Button */}
           <button
             onClick={(e) => { e.stopPropagation(); setIsEditing(!isEditing); }}
@@ -235,8 +282,14 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
             <button
               onClick={async (e) => {
                 e.stopPropagation();
-                await updateIdea({ ideaId: focusedIdea._id, content: editedContent });
-                setIsEditing(false); // Exit editing mode after saving
+                try {
+                  await updateIdea({ ideaId: focusedIdea._id, content: editedContent });
+                  // No need to manually update focusedIdea.content, Convex will handle state update
+                  setIsEditing(false); // Exit editing mode after saving
+                } catch (error) {
+                   console.error("Failed to save idea:", error);
+                   // Optionally: show an error message to the user
+                }
               }}
               className="p-2 rounded-full hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-opacity text-dark-grey-text"
               title="Save Changes"
@@ -250,15 +303,23 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
           <button
             onClick={async (e) => { // Make the handler async
               e.stopPropagation();
-              await updateIdeaStatus({ ideaId: focusedIdea._id, status: "pending" }); // Set status to pending
-              reanalyzeIdea({ ideaId: focusedIdea._id }); // Trigger re-analysis action
+              if (isEditing) setIsEditing(false); // Exit edit mode if re-analyzing
+              try {
+                  await updateIdeaStatus({ ideaId: focusedIdea._id, status: "pending" }); // Set status to pending
+                  // Don't await the reanalyze action if you want the UI to update immediately
+                  reanalyzeIdea({ ideaId: focusedIdea._id }); // Trigger re-analysis action
+              } catch(error) {
+                  console.error("Failed to trigger re-analysis:", error);
+                  // Optionally reset status if updateIdeaStatus failed but you want to try reanalyzeIdea anyway,
+                  // or show an error message
+              }
             }}
             className="p-2 rounded-full hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-opacity text-dark-grey-text"
             title="Re-analyze Idea"
           >
-             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.015 10.002A8.25 8.25 0 0 1 16.5 6.375h2.25a9.75 9.75 0 0 0-19.5 0v.338A9.75 9.75 0 0 0 5.015 10.002Z" />
-             </svg>
+             {/* --- Replaced SVG with Heroicon component --- */}
+             <ArrowPathIcon className="w-6 h-6" />
+             {/* ------------------------------------------- */}
           </button>
         </div>
       </div> {/* End of toolbars container */}
