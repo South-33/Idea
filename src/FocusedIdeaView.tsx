@@ -155,7 +155,7 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
     <>
     <div
       id="focused-idea-backdrop" // Added ID for mouseleave listener
-      className={`fixed inset-0 bg-black flex justify-center items-center z-50 p-4 transition-all duration-160 ease-in-out ${isBackdropVisible ? 'bg-opacity-[0.2] backdrop-blur-sm' : 'bg-opacity-0 backdrop-blur-none'}`} // Conditionally apply opacity and blur, faster duration
+      className={`fixed inset-0 bg-black flex justify-center items-center z-50 p-4 transition-all duration-500 ease-in-out ${isBackdropVisible ? 'bg-opacity-[0.2] backdrop-blur-sm' : 'bg-opacity-0 backdrop-blur-none'}`} // Conditionally apply opacity and blur, faster duration
       onClick={onClose} // Close when clicking the backdrop
       style={{ perspective: '1000px' }} // Add perspective for 3D transform
     >
