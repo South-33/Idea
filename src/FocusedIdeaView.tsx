@@ -195,7 +195,7 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
           <div className="space-y-4">
             {/* Header: Title and Score */}
             <div className="flex items-center justify-between border-b border-gray-200 pb-3 mb-3">
-              <span className="text-xl text-dark-grey-text font-semibold">{focusedIdea.analysis.title}</span>
+              <span className="text-2xl text-dark-grey-text font-semibold">{focusedIdea.analysis.title}</span>
               <span className={`text-md bg-gray-75 rounded-full px-3 py-1 border shadow-sm ${
                 score !== undefined
                   ? score >= 8 ? 'border-green-300'
@@ -221,15 +221,15 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
                  <p className="text-dark-grey-text italic">{focusedIdea.content}</p>
                )}
                <div className="border-t border-gray-200 pt-3 mt-3">
-                 <span className="text-dark-grey-text text-md font-semibold">Reasoning:</span>
+                 <span className="text-xl text-dark-grey-text text-lg font-semibold">Reasoning:</span>
                  <p className="text-dark-grey-text mt-1">{focusedIdea.analysis.reasoning}</p>
                </div>
                <div className="border-t border-gray-200 pt-3 mt-3">
-                 <span className="text-dark-grey-text text-md font-semibold">Feasibility:</span>
+                 <span className="text-xl text-dark-grey-text text-lg font-semibold">Feasibility:</span>
                  <p className="text-dark-grey-text mt-1">{focusedIdea.analysis.feasibility}</p>
                </div>
                <div className="border-t border-gray-200 pt-3 mt-3">
-                 <span className="text-dark-grey-text text-md font-semibold">Similar Ideas:</span>
+                 <span className="text-xl text-dark-grey-text text-lg font-semibold">Similar Ideas:</span>
                  <p className="text-dark-grey-text mt-1">{focusedIdea.analysis.similarIdeas}</p>
                </div>
             </div>
