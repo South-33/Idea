@@ -166,11 +166,11 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
         style={{
            ...focusedIdea.analysis?.score !== undefined && !isAnimatingIn ? { boxShadow: '0 0 120px 27px rgba(255, 255, 255, 0.5)' } : {}, // Keep the glow conditionally, but not when animating in
            boxShadow: isAnimatingIn ? '0 50px 75px -20px rgba(0, 0, 0, 0.3)' : (focusedIdea.analysis?.score !== undefined ? '0 0 120px 27px rgba(255, 255, 255, 0.5)' : 'none'), // Conditional box shadow based on animation state (more pronounced)
-           transform: `scale(${scale}) ${isAnimatingIn ? 'translateZ(0px)' : 'translateZ(-70px)'}`, // Apply scale and translateZ transform based on animation state (increased lift)
+           transform: `scale(${scale}) ${isAnimatingIn ? 'translateZ(0px)' : 'translateZ(-180px)'}`, // Apply scale and translateZ transform based on animation state (increased lift)
            transformOrigin: 'center', // Scale from center
            transformStyle: 'preserve-3d', // Preserve 3D transformations for children
            backfaceVisibility: 'hidden', // Hide backface during transform
-           transition: 'transform 0.16s ease-out, box-shadow 0.2s ease-out', // Smooth transition for transform and box-shadow
+           transition: 'transform 0.15s ease-out, box-shadow 0.18s ease-out', // Smooth transition for transform and box-shadow
            maxHeight: cardMaxHeight !== null ? `${cardMaxHeight}px` : undefined, // Apply dynamic max height
            maxWidth: 'calc(48rem * 1.3)',
         }}
