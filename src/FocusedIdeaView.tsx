@@ -170,7 +170,7 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
            transformOrigin: 'center', // Scale from center
            transformStyle: 'preserve-3d', // Preserve 3D transformations for children
            backfaceVisibility: 'hidden', // Hide backface during transform
-           transition: 'transform 0.18s ease-out, box-shadow 0.25s ease-out', // Smooth transition for transform and box-shadow
+           transition: 'transform 0.16s ease-out, box-shadow 0.2s ease-out', // Smooth transition for transform and box-shadow
            maxHeight: cardMaxHeight !== null ? `${cardMaxHeight}px` : undefined, // Apply dynamic max height
            maxWidth: 'calc(48rem * 1.3)',
         }}
