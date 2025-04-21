@@ -7,10 +7,14 @@ import { useState } from "react";
 import { Id } from "../convex/_generated/dataModel";
 import { IdeaCard } from "./IdeaCard";
 import { FocusedIdeaView } from "./FocusedIdeaView"; // Import the focused view component
+import { CreateIdeaView } from "./CreateIdeaView"; // Import the create view component
 
 export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCreatingIdea, setIsCreatingIdea] = useState(false); // State for create view modal
   const loggedInUser = useQuery(api.auth.loggedInUser);
+
+  const handleCloseCreateView = () => setIsCreatingIdea(false); // Handler to close create view
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -32,6 +36,10 @@ export default function App() {
               <li><a href="#" className="block py-2 text-dark-grey-text hover:bg-gray-100 rounded">Link 2</a></li>
             </ul>
           </nav> */}
+        {/* Sign Out Button */}
+         <div className="mt-auto p-4 border-t border-gray-200"> {/* Added margin-top and border */}
+           <SignOutButton />
+         </div>
         </div>
       </div>
 
@@ -52,14 +60,23 @@ export default function App() {
           <div className="flex-grow text-center">
             <p className="text-xl text-dark-grey-text">Do you have an idea?</p>
           </div>
-          {/* Sign Out Button */}
-          <SignOutButton />
+          {/* Create New Note Button */}
+          <button
+            onClick={() => setIsCreatingIdea(true)} // Open create view modal
+            className="p-2 rounded-lg hover:bg-gray-100 text-dark-grey-text border border-border-grey" // Added border class
+            title="Create New Note" // Add title for accessibility
+          >
+            {/* Plus Icon */}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+          </button>
         </div>
 
         {/* Main Content */}
         <main className="p-4 md:p-8">
           <div className="max-w-6xl mx-auto">
-            <Content />
+            <Content isCreating={isCreatingIdea} onCloseCreateView={handleCloseCreateView} />
           </div>
         </main>
       </div>
@@ -68,11 +85,11 @@ export default function App() {
   );
 }
 
-function Content() {
-  const [newIdea, setNewIdea] = useState("");
+function Content({ isCreating, onCloseCreateView }: { isCreating: boolean; onCloseCreateView: () => void }) {
+  // Removed unused newIdea state and handler
   const [focusedIdeaId, setFocusedIdeaId] = useState<Id<"ideas"> | null>(null); // Changed state for focused view
-  const [textareaHeight, setTextareaHeight] = useState('auto');
-  const addIdea = useMutation(api.ideas.addIdea);
+  // Removed unused textareaHeight state
+  const addIdea = useMutation(api.ideas.addIdea); // Keep addIdea mutation here
   const deleteIdea = useMutation(api.ideas.deleteIdea);
   const moveIdea = useMutation(api.ideas.moveIdea);
   const ideas = useQuery(api.ideas.listIdeas) || [];
@@ -86,12 +103,7 @@ function Content() {
     );
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newIdea.trim()) return;
-    await addIdea({ content: newIdea });
-    setNewIdea("");
-  };
+  // Removed unused handleSubmit function
 
   const handleDelete = async (ideaId: Id<"ideas">) => {
     await deleteIdea({ ideaId });
@@ -136,30 +148,6 @@ function Content() {
       </Unauthenticated>
 
       <Authenticated>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <textarea
-            value={newIdea}
-            onChange={(e) => {
-              setNewIdea(e.target.value);
-            }}
-            onInput={(e) => { // Use onInput for immediate resizing
-              const target = e.target as HTMLTextAreaElement;
-              target.style.height = 'auto'; // Temporarily reset to get accurate scrollHeight
-              setTextareaHeight(`${target.scrollHeight}px`);
-            }}
-            placeholder="Type your idea here..."
-            className="w-full p-4 border border-border-grey rounded-lg focus:outline-none focus:ring-2 focus:ring-border-grey focus:ring-opacity-50 bg-white resize-none hide-scrollbar overflow-hidden"
-            style={{ height: textareaHeight }}
-          />
-          <button
-            type="submit"
-            disabled={!newIdea.trim()}
-            className="button px-6 py-2 disabled:opacity-50 hover:bg-gray-100"
-          >
-            Add Idea
-          </button>
-        </form>
-
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start"> {/* Updated gap */}
           {ideas.map((idea) => (
               <IdeaCard
@@ -180,6 +168,14 @@ function Content() {
           allIdeas={ideas}
           onClose={() => setFocusedIdeaId(null)}
           onNavigate={handleNavigate}
+        />
+      )}
+
+      {/* Conditionally render the Create Idea View */}
+      {isCreating && (
+        <CreateIdeaView
+          onAddIdea={addIdea}
+          onClose={onCloseCreateView}
         />
       )}
     </div>
