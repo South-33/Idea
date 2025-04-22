@@ -17,6 +17,13 @@ const applicationTables = {
       summary: v.optional(v.string()),
     })),
   }).index("by_user", ["userId"]),
+  dreams: defineTable({
+    userId: v.id("users"),
+    content: v.string(),
+    status: v.union(v.literal("pending"), v.literal("storified")),
+    position: v.number(),
+    story: v.optional(v.string()),
+  }).index("by_user", ["userId"]),
 };
 
 export default defineSchema({
