@@ -3,7 +3,7 @@ import { api } from "../convex/_generated/api";
 import { SignInForm } from "./SignInForm";
 import { SignOutButton } from "./SignOutButton";
 import { Toaster } from "sonner";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Id } from "../convex/_generated/dataModel";
 import { IdeaCard } from "./IdeaCard";
 import { FocusedIdeaView } from "./FocusedIdeaView";
@@ -19,8 +19,69 @@ export default function App() {
   const [isCreatingIdea, setIsCreatingIdea] = useState(false);
   const [isCreatingDream, setIsCreatingDream] = useState(false); // State for create dream modal
   const loggedInUser = useQuery(api.auth.loggedInUser);
-  const ideas = useQuery(api.ideas.listIdeas) || []; // Fetch ideas in App
-  const dreams = useQuery(api.dreams.listDreams) || []; // Fetch dreams in App
+  const queryIdeas = useQuery(api.ideas.listIdeas) || []; // Fetch ideas in App
+  const queryDreams = useQuery(api.dreams.listDreams) || []; // Fetch dreams in App
+
+  // Use local state for optimistic updates
+  const [localIdeas, setLocalIdeas] = useState(queryIdeas);
+  const [localDreams, setLocalDreams] = useState(queryDreams);
+
+  // Update local state when query results change from useQuery
+  useEffect(() => {
+    if (queryIdeas.length > 0) {
+      setLocalIdeas(queryIdeas);
+    }
+  }, [queryIdeas]);
+
+  useEffect(() => {
+    if (queryDreams.length > 0) {
+      setLocalDreams(queryDreams);
+    }
+  }, [queryDreams]);
+
+  const deleteIdeaMutation = useMutation(api.ideas.deleteIdea);
+
+  const deleteDreamMutation = useMutation(api.dreams.deleteDream);
+
+  const deleteIdea = async (ideaId: Id<"ideas">) => {
+    // Find the idea to be deleted
+    const ideaToDelete = localIdeas.find(idea => idea._id === ideaId);
+    if (!ideaToDelete) return;
+
+    // Optimistically update the UI
+    setLocalIdeas(prevIdeas => prevIdeas.filter(idea => idea._id !== ideaId));
+
+    try {
+      // Call the delete mutation
+      await deleteIdeaMutation({ ideaId });
+    } catch (error) {
+      // If mutation fails, revert the UI and show error
+      console.error("Failed to delete idea on server:", error);
+      setLocalIdeas(prevIdeas => [...prevIdeas, ideaToDelete]);
+      // Optionally show a user-friendly error message
+      // alert("Failed to delete idea. Please try again.");
+    }
+  };
+
+  const deleteDream = async (dreamId: Id<"dreams">) => {
+    // Find the dream to be deleted
+    const dreamToDelete = localDreams.find(dream => dream._id === dreamId);
+    if (!dreamToDelete) return;
+
+    // Optimistically update the UI
+    setLocalDreams(prevDreams => prevDreams.filter(dream => dream._id !== dreamId));
+
+    try {
+      // Call the delete mutation
+      await deleteDreamMutation({ dreamId });
+    } catch (error) {
+      // If mutation fails, revert the UI and show error
+      console.error("Failed to delete dream on server:", error);
+      setLocalDreams(prevDreams => [...prevDreams, dreamToDelete]);
+      // Optionally show a user-friendly error message
+      // alert("Failed to delete dream. Please try again.");
+    }
+  };
 
   const handleCloseCreateIdeaView = () => setIsCreatingIdea(false);
   const handleCloseCreateDreamView = () => setIsCreatingDream(false);
@@ -115,8 +176,10 @@ export default function App() {
               onCloseCreateIdeaView={handleCloseCreateIdeaView}
               onCloseCreateDreamView={handleCloseCreateDreamView}
               loggedInUser={loggedInUser} // Pass loggedInUser
-              ideas={ideas} // Pass ideas
-              dreams={dreams} // Pass dreams
+              ideas={localIdeas} // Pass local ideas state
+              dreams={localDreams} // Pass local dreams state
+              deleteIdea={deleteIdea} // Pass delete function
+              deleteDream={deleteDream} // Pass delete function
             />
           </div>
         </main>
@@ -134,9 +197,13 @@ interface ContentProps {
   onCloseCreateIdeaView: () => void;
   onCloseCreateDreamView: () => void;
   loggedInUser: any; // Add loggedInUser to props
-  ideas: any[]; // Add ideas to props (consider more specific type)
-  dreams: any[]; // Add dreams to props (consider more specific type)
+  ideas: any[]; // Accept local ideas state as prop
+  dreams: any[]; // Accept local dreams state as prop
+  deleteIdea: (ideaId: Id<"ideas">) => Promise<void>; // Update prop type for delete function
+  deleteDream: (dreamId: Id<"dreams">) => Promise<void>; // Update prop type for delete function
 }
+// The Focused and Create views are now rendered within IdeasView and DreamsView,
+// so their props are not needed here anymore.
 
 function Content({
   currentView,
@@ -147,6 +214,8 @@ function Content({
   loggedInUser,
   ideas, // Accept ideas prop
   dreams, // Accept dreams prop
+  deleteIdea, // Accept delete mutation prop
+  deleteDream, // Accept delete mutation prop
 }: ContentProps) {
 
   // Reinstate loading check for loggedInUser
@@ -181,6 +250,7 @@ function Content({
             isCreatingIdea={isCreatingIdea}
             onCloseCreateIdeaView={onCloseCreateIdeaView}
             ideas={ideas} // Pass ideas prop
+            deleteIdea={deleteIdea} // Pass delete mutation
           />
         )}
         {currentView === 'dreams' && (
@@ -188,6 +258,7 @@ function Content({
             isCreatingDream={isCreatingDream} // Pass isCreatingDream
             onCloseCreateDreamView={onCloseCreateDreamView}
             dreams={dreams} // Pass dreams prop
+            deleteDream={deleteDream} // Pass delete mutation
           />
         )}
       </Authenticated>

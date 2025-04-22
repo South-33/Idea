@@ -10,25 +10,32 @@ interface IdeasViewProps {
   ideas: any[]; // Accept ideas as prop (consider more specific type)
   isCreatingIdea: boolean; // Pass down from App
   onCloseCreateIdeaView: () => void;
+  deleteIdea: (ideaId: Id<"ideas">) => Promise<void>; // Update prop type for delete function
   // Add other props needed from App/Content
 }
 
-export function IdeasView({ ideas, isCreatingIdea, onCloseCreateIdeaView }: IdeasViewProps) {
+export function IdeasView({ ideas, isCreatingIdea, onCloseCreateIdeaView, deleteIdea }: IdeasViewProps) {
   const [focusedIdeaId, setFocusedIdeaId] = useState<Id<"ideas"> | null>(null);
 
   const addIdea = useMutation(api.ideas.addIdea);
-  const deleteIdea = useMutation(api.ideas.deleteIdea);
 
   // Removed: const ideas = useQuery(api.ideas.listIdeas) || [];
 
   const handleIdeaDelete = async (ideaId: Id<"ideas">) => {
-    await deleteIdea({ ideaId });
+    // Call the deleteIdea function passed from the parent
+    // The parent component (App.tsx) now handles the optimistic UI update and error handling
+    await deleteIdea(ideaId);
     if (focusedIdeaId === ideaId) {
       setFocusedIdeaId(null); // Close focus view if deleted
     }
   };
 
-  const focusedIdea = useMemo(() => ideas.find(idea => idea._id === focusedIdeaId), [ideas, focusedIdeaId]);
+  const focusedIdea = useMemo(() => {
+    if (!Array.isArray(ideas)) {
+      return undefined; // Or null, depending on desired initial state
+    }
+    return ideas.find(idea => idea._id === focusedIdeaId);
+  }, [ideas, focusedIdeaId]);
 
   // Removed: Conditional return based on loggedInUser === undefined
 

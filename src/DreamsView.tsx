@@ -10,25 +10,32 @@ interface DreamsViewProps {
   dreams: any[]; // Accept dreams as prop (consider more specific type)
   isCreatingDream: boolean; // Pass down from App
   onCloseCreateDreamView: () => void;
+  deleteDream: (dreamId: Id<"dreams">) => Promise<void>; // Update prop type for delete function
   // Add other props needed from App/Content
 }
 
-export function DreamsView({ dreams, isCreatingDream, onCloseCreateDreamView }: DreamsViewProps) {
+export function DreamsView({ dreams, isCreatingDream, onCloseCreateDreamView, deleteDream }: DreamsViewProps) {
   const [focusedDreamId, setFocusedDreamId] = useState<Id<"dreams"> | null>(null);
 
   const addDream = useMutation(api.dreams.addDream);
-  const deleteDream = useMutation(api.dreams.deleteDream);
 
   // Removed: const dreams = useQuery(api.dreams.listDreams) || [];
 
   const handleDreamDelete = async (dreamId: Id<"dreams">) => {
-    await deleteDream({ dreamId });
+    // Call the deleteDream function passed from the parent
+    // The parent component (App.tsx) now handles the optimistic UI update and error handling
+    await deleteDream(dreamId);
     if (focusedDreamId === dreamId) {
       setFocusedDreamId(null); // Close focus view if deleted
     }
   };
 
-  const focusedDream = useMemo(() => dreams.find(dream => dream._id === focusedDreamId), [dreams, focusedDreamId]);
+  const focusedDream = useMemo(() => {
+    if (!Array.isArray(dreams)) {
+      return undefined; // Or null, depending on desired initial state
+    }
+    return dreams.find(dream => dream._id === focusedDreamId);
+  }, [dreams, focusedDreamId]);
 
   // Removed: Conditional return based on loggedInUser === undefined
 
