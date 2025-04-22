@@ -8,6 +8,10 @@ type Dream = {
   content: string;
   story?: string; // The generated story
   status?: "pending" | "storified"; // To track AI processing
+  analysis?: { // Add optional analysis object
+    title?: string; // Add optional title field
+    // Add other potential analysis fields for dreams later if needed
+  };
 };
 
 type DreamCardProps = {
@@ -36,7 +40,7 @@ export function DreamCard({ dream, onDelete, onFocus, isHidden }: DreamCardProps
 
       {/* Header */}
       <div className="flex items-center mb-4 text-dark-grey-text text-sm border-b border-gray-200 pb-3 mb-3">
-        {'< Dreams'}
+        {'< Dream'}
       </div>
 
       {/* Content - Make clickable for expansion */}
@@ -46,18 +50,23 @@ export function DreamCard({ dream, onDelete, onFocus, isHidden }: DreamCardProps
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-dark-grey-text"></div>
             Generating story...
           </div>
-        ) : dream.story ? (
+        ) : dream.story || dream.analysis?.title ? ( // Render if story or title exists
           <div className="space-y-3">
-            {/* Dream Content */}
-            <p className="text-lg text-dark-grey-text font-semibold truncate">{dream.content}</p> {/* Truncate long content */}
+            {/* Title or Dream Content */}
+            <div className="flex items-center justify-between border-b border-gray-200 pb-3 mb-3">
+              <span className="text-lg text-dark-grey-text font-semibold">{dream.analysis?.title}</span>
+              {/* Optional: Add a score/status indicator here if applicable to dreams */}
+            </div>
             {/* Story Snippet */}
-             <p className="text-sm text-dark-grey-text mt-2 line-clamp-3"> {/* Limit lines */}
-               {dream.story}
-             </p>
+            {dream.story && (
+              <p className="text-sm text-dark-grey-text mt-2 line-clamp-3">
+                {dream.story}
+              </p>
+            )}
           </div>
         ) : (
-          // Fallback if storified but no story data somehow
-          <p className="text-dark-grey-text">Story data unavailable.</p>
+          // Fallback if storified but no story or title data somehow
+          <p className="text-dark-grey-text">Story or analysis data unavailable.</p>
         )}
       </div>
 

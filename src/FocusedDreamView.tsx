@@ -5,11 +5,16 @@ import { useAction, useMutation } from 'convex/react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline'; // Reusing this for regenerate
 
 // Define the expected shape of the 'dream' prop based on the schema
+// Define the expected shape of the 'dream' prop based on the schema
 interface Dream {
   _id: Id<"dreams">;
   content: string;
   story?: string; // The generated story
   status?: "pending" | "storified"; // To track AI processing
+  analysis?: { // Add optional analysis object
+    title?: string; // Add optional title field
+    // Add other potential analysis fields for dreams later if needed
+  };
 }
 
 type FocusedDreamViewProps = {
@@ -169,7 +174,10 @@ export function FocusedDreamView({ focusedDream, allDreams, onClose, onNavigate 
           <div className="space-y-4">
             {/* Header: Dream Title (using first few words or a generated title if we add one later) */}
             <div className="border-b border-gray-200 pb-3 mb-3">
-              <span className="text-2xl text-dark-grey-text font-semibold">Dream</span> {/* Simple title for now */}
+              {/* Display AI Title if available, otherwise a default */}
+              <span className="text-2xl text-dark-grey-text font-semibold">
+                {focusedDream.analysis?.title || 'Dream Details'} {/* Use AI title or default */}
+              </span>
             </div>
 
             {/* Detailed Content */}

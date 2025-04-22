@@ -66,13 +66,17 @@ export const getDream = query({
 export const updateDreamStory = mutation({
   args: {
     dreamId: v.id("dreams"),
-    story: v.string(), // The generated story text
+    story: v.optional(v.string()), // The generated story text (made optional)
+    analysis: v.optional(v.object({ // Add optional analysis object
+      title: v.optional(v.string()), // Add optional title field
+    })),
   },
   handler: async (ctx, args) => {
     // Internal mutation, assumes validation/auth happened before scheduling the action
     await ctx.db.patch(args.dreamId, {
       status: "storified",
       story: args.story,
+      analysis: args.analysis, // Save the analysis object
     });
   },
 });

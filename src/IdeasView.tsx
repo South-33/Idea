@@ -7,19 +7,19 @@ import { FocusedIdeaView } from "./FocusedIdeaView";
 import { CreateIdeaView } from "./CreateIdeaView";
 
 interface IdeasViewProps {
-  loggedInUser: any; // Consider a more specific type if available
+  ideas: any[]; // Accept ideas as prop (consider more specific type)
   isCreatingIdea: boolean; // Pass down from App
   onCloseCreateIdeaView: () => void;
   // Add other props needed from App/Content
 }
 
-export function IdeasView({ loggedInUser, isCreatingIdea, onCloseCreateIdeaView }: IdeasViewProps) {
+export function IdeasView({ ideas, isCreatingIdea, onCloseCreateIdeaView }: IdeasViewProps) {
   const [focusedIdeaId, setFocusedIdeaId] = useState<Id<"ideas"> | null>(null);
 
   const addIdea = useMutation(api.ideas.addIdea);
   const deleteIdea = useMutation(api.ideas.deleteIdea);
 
-  const ideas = useQuery(api.ideas.listIdeas) || [];
+  // Removed: const ideas = useQuery(api.ideas.listIdeas) || [];
 
   const handleIdeaDelete = async (ideaId: Id<"ideas">) => {
     await deleteIdea({ ideaId });
@@ -30,13 +30,7 @@ export function IdeasView({ loggedInUser, isCreatingIdea, onCloseCreateIdeaView 
 
   const focusedIdea = useMemo(() => ideas.find(idea => idea._id === focusedIdeaId), [ideas, focusedIdeaId]);
 
-  if (loggedInUser === undefined) {
-    return (
-      <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-dark-grey-text"></div>
-      </div>
-    );
-  }
+  // Removed: Conditional return based on loggedInUser === undefined
 
   // Modified handleNavigate for IdeasView
   const handleIdeaNavigate = (direction: 'prev' | 'next') => {

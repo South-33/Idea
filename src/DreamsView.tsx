@@ -7,19 +7,19 @@ import { FocusedDreamView } from "./FocusedDreamView.tsx";
 import { CreateDreamView } from "./CreateDreamView.tsx";
 
 interface DreamsViewProps {
-  loggedInUser: any; // Consider a more specific type if available
+  dreams: any[]; // Accept dreams as prop (consider more specific type)
   isCreatingDream: boolean; // Pass down from App
   onCloseCreateDreamView: () => void;
   // Add other props needed from App/Content
 }
 
-export function DreamsView({ loggedInUser, isCreatingDream, onCloseCreateDreamView }: DreamsViewProps) {
+export function DreamsView({ dreams, isCreatingDream, onCloseCreateDreamView }: DreamsViewProps) {
   const [focusedDreamId, setFocusedDreamId] = useState<Id<"dreams"> | null>(null);
 
   const addDream = useMutation(api.dreams.addDream);
   const deleteDream = useMutation(api.dreams.deleteDream);
 
-  const dreams = useQuery(api.dreams.listDreams) || [];
+  // Removed: const dreams = useQuery(api.dreams.listDreams) || [];
 
   const handleDreamDelete = async (dreamId: Id<"dreams">) => {
     await deleteDream({ dreamId });
@@ -30,13 +30,7 @@ export function DreamsView({ loggedInUser, isCreatingDream, onCloseCreateDreamVi
 
   const focusedDream = useMemo(() => dreams.find(dream => dream._id === focusedDreamId), [dreams, focusedDreamId]);
 
-  if (loggedInUser === undefined) {
-    return (
-      <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-dark-grey-text"></div>
-      </div>
-    );
-  }
+  // Removed: Conditional return based on loggedInUser === undefined
 
   // Modified handleNavigate for DreamsView
   const handleDreamNavigate = (direction: 'prev' | 'next') => {
@@ -73,7 +67,7 @@ export function DreamsView({ loggedInUser, isCreatingDream, onCloseCreateDreamVi
            onClose={() => setFocusedDreamId(null)}
            onNavigate={handleDreamNavigate} // Use the local navigate handler
          />
-      )}
+       )}
 
       {isCreatingDream && (
          <CreateDreamView

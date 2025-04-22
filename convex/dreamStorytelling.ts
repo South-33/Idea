@@ -28,38 +28,71 @@ export const generateStory = action({
 
     // 2. Construct the prompt for the AI
     const prompt = `
-You are a creative storyteller AI. Based on the dream description provided below, write a short, cohesive, and imaginative story (around 100-300 words). Capture the mood and key elements of the dream.
+You are a creative storyteller AI. Based on the dream description provided below, generate a JSON object with two fields:
+1.  \`title\`: A concise and engaging title for the dream (under 10 words).
+2.  \`story\`: A short, cohesive, and imaginative story (around 100-300 words) based on the dream description. Capture the mood and key elements.
 
 --- DREAM DESCRIPTION START ---
 ${dream.content}
 --- DREAM DESCRIPTION END ---
 
-Write only the story itself, without any introductory or concluding phrases like "Here's the story:".
+Provide only the JSON object in your response.
 `;
 
     try {
       // 3. Call the Generative AI model
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-04-17" }); // Or another suitable model
 
-      console.log(`Generating story for dream ${args.dreamId}...`);
+      console.log(`Generating story and title for dream ${args.dreamId}...`);
       const result = await model.generateContent(prompt);
       const response = result.response;
-      const storyText = response.text();
+      const responseText = response.text(); // Get the raw text response
 
-      if (!storyText) {
+      if (!responseText) {
         console.error("AI response content is empty for dream:", args.dreamId);
-        throw new Error("No story content from AI");
+        throw new Error("No content from AI");
       }
 
-      console.log(`Successfully generated story for dream ${args.dreamId}`);
+      console.log("Raw Gemini response:", responseText); // Debug log raw response
 
-      // 4. Save the generated story back to the database
-      await ctx.runMutation(api.dreams.updateDreamStory, {
+      // Remove markdown code block fences if present
+      let cleanedResponseText = responseText.replace(/^```json\n/, '').replace(/\n```$/, '');
+      console.log("Cleaned Gemini response:", cleanedResponseText); // Debug log cleaned response
+
+      // Parse the cleaned text response as JSON
+      let parsedResponse;
+      try {
+        parsedResponse = JSON.parse(cleanedResponseText);
+        console.log("Parsed Gemini response:", parsedResponse); // Debug log parsed response
+      } catch (parseError) {
+        console.error("Failed to parse AI response as JSON for dream:", args.dreamId, "\nResponse:\n", responseText, "\nError:", parseError);
+        throw new Error("Invalid JSON response from AI");
+      }
+
+      const titleText = parsedResponse?.title;
+      const storyText = parsedResponse?.story;
+
+      if (!storyText) {
+         console.error("AI response did not contain a story for dream:", args.dreamId, "\nResponse:\n", responseText);
+         throw new Error("AI response did not contain a story field");
+      }
+
+      console.log(`Successfully extracted story and title for dream ${args.dreamId}`);
+
+      // 4. Construct update arguments and save to the database
+      const updateArgs: any = {
         dreamId: args.dreamId,
-        story: storyText.trim(), // Trim whitespace
-      });
+        story: storyText,
+      };
 
-      console.log(`Successfully updated dream ${args.dreamId} with story.`);
+      // Only include the analysis object in the arguments if a title was extracted
+      if (titleText !== undefined && titleText !== null && titleText !== '') {
+          updateArgs.analysis = { title: titleText };
+      }
+
+      await ctx.runMutation(api.dreams.updateDreamStory, updateArgs);
+
+      console.log(`Successfully updated dream ${args.dreamId} with story and title.`);
 
     } catch (error) {
       console.error(`Failed to generate story for dream ${args.dreamId}:`, error);

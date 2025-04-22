@@ -19,6 +19,8 @@ export default function App() {
   const [isCreatingIdea, setIsCreatingIdea] = useState(false);
   const [isCreatingDream, setIsCreatingDream] = useState(false); // State for create dream modal
   const loggedInUser = useQuery(api.auth.loggedInUser);
+  const ideas = useQuery(api.ideas.listIdeas) || []; // Fetch ideas in App
+  const dreams = useQuery(api.dreams.listDreams) || []; // Fetch dreams in App
 
   const handleCloseCreateIdeaView = () => setIsCreatingIdea(false);
   const handleCloseCreateDreamView = () => setIsCreatingDream(false);
@@ -113,6 +115,8 @@ export default function App() {
               onCloseCreateIdeaView={handleCloseCreateIdeaView}
               onCloseCreateDreamView={handleCloseCreateDreamView}
               loggedInUser={loggedInUser} // Pass loggedInUser
+              ideas={ideas} // Pass ideas
+              dreams={dreams} // Pass dreams
             />
           </div>
         </main>
@@ -130,6 +134,8 @@ interface ContentProps {
   onCloseCreateIdeaView: () => void;
   onCloseCreateDreamView: () => void;
   loggedInUser: any; // Add loggedInUser to props
+  ideas: any[]; // Add ideas to props (consider more specific type)
+  dreams: any[]; // Add dreams to props (consider more specific type)
 }
 
 function Content({
@@ -139,12 +145,18 @@ function Content({
   onCloseCreateIdeaView,
   onCloseCreateDreamView,
   loggedInUser,
+  ideas, // Accept ideas prop
+  dreams, // Accept dreams prop
 }: ContentProps) {
 
-  // No state or queries here anymore, they are in the view components
-
-  // Remove conditional return based on loggedInUser === undefined
-  // That check is now handled within IdeasView and DreamsView
+  // Reinstate loading check for loggedInUser
+  if (loggedInUser === undefined) {
+    return (
+      <div className="flex justify-center items-center h-32">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-dark-grey-text"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8 relative"> {/* Added relative positioning for modal context */}
@@ -166,16 +178,16 @@ function Content({
         {/* Conditionally render IdeasView or DreamsView */}
         {currentView === 'ideas' && (
           <IdeasView
-            loggedInUser={loggedInUser}
             isCreatingIdea={isCreatingIdea}
             onCloseCreateIdeaView={onCloseCreateIdeaView}
+            ideas={ideas} // Pass ideas prop
           />
         )}
         {currentView === 'dreams' && (
           <DreamsView
-            loggedInUser={loggedInUser}
             isCreatingDream={isCreatingDream} // Pass isCreatingDream
             onCloseCreateDreamView={onCloseCreateDreamView}
+            dreams={dreams} // Pass dreams prop
           />
         )}
       </Authenticated>

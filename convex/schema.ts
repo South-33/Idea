@@ -23,6 +23,10 @@ const applicationTables = {
     status: v.union(v.literal("pending"), v.literal("storified")),
     position: v.number(),
     story: v.optional(v.string()),
+    analysis: v.optional(v.object({ // Add optional analysis object
+      title: v.optional(v.string()), // Add optional title field
+      // Add other potential analysis fields for dreams later if needed
+    })),
   }).index("by_user", ["userId"]),
 };
 
