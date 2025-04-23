@@ -48,7 +48,7 @@ export function IdeaCard({ idea, onDelete, onFocus, isHidden }: IdeaCardProps) {
 
       {/* Header */}
       <div className="flex items-center mb-4 text-dark-grey-text text-sm border-b border-gray-200 pb-3 mb-3">
-        {'< Notes'}
+        {'< Idea'}
       </div>
 
       {/* Content - Make clickable for expansion */}

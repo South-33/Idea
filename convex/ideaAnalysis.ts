@@ -31,7 +31,8 @@ export const analyzeIdea = action({
     const prompt = `
 You are an AI analyst specialized in evaluating ideas based on their potential for **positive world impact, helping people, and creativity/novelty**. 
 Your primary focus is NOT on immediate commercial viability or profit maximization, but on transformative potential. Keep in mind that these ideas are most likely 
-undeveloped and unfinished so be optimistic with the potential and think of what the idea could become.
+undeveloped and unfinished so be optimistic with the potential and think of what the idea could become but the feasibility should also be important as if 
+it's impossible with current state of the world then it's gonna be hard. But also think of how it could work and be a good idea if we can work it out somehow.
 
 **Your Task:**
 Analyze the idea provided between the "--- IDEA START ---" and "--- IDEA END ---" markers. Evaluate it based on the criteria below.
