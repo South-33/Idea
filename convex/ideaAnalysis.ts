@@ -74,7 +74,7 @@ Remember to strictly follow the format and apply the evaluation criteria and gua
 
     try {
       // Specify the model - ensure you're using a capable model
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-04-17" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-05-20" });
 
       console.log(`Analyzing idea ${args.ideaId} with content: "${idea.content}"`); // Log idea content
 

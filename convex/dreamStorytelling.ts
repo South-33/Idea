@@ -41,7 +41,7 @@ Provide only the JSON object in your response.
 
     try {
       // 3. Call the Generative AI model
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-04-17" }); // Or another suitable model
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-05-20" }); // Or another suitable model
 
       console.log(`Generating story and title for dream ${args.dreamId}...`);
       const result = await model.generateContent(prompt);
