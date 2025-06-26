@@ -13,6 +13,18 @@ import { DreamsView } from "./DreamsView"; // Import DreamsView
 
 export type ViewType = 'ideas' | 'dreams'; // Define view type
 
+// Eagerly define functions on the window object for Flutter to find.
+// The actual implementation will be provided by the App component once it mounts.
+(window as any).isUserAuthenticated = () => {
+  console.log("[Sync Debug] isUserAuthenticated (placeholder) called. App not ready.");
+  return false;
+};
+
+(window as any).addOfflineIdea = async (content: string) => {
+  console.error(`[Sync Debug] addOfflineIdea (placeholder) called with content: "${content}". App not ready.`);
+  return Promise.resolve(false); // Return a promise that resolves to false
+};
+
 export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentView, setCurrentView] = useState<ViewType>('ideas'); // State for current view
@@ -41,12 +53,22 @@ export default function App() {
   }, [queryDreams]);
 
   useEffect(() => {
+    (window as any).isUserAuthenticated = () => {
+      const authenticated = loggedInUser !== null && loggedInUser !== undefined;
+      console.log(`[Sync Debug] isUserAuthenticated called. User is ${authenticated ? 'authenticated' : 'NOT authenticated'}.`);
+      return authenticated;
+    };
+  }, [loggedInUser]);
+
+  useEffect(() => {
     (window as any).addOfflineIdea = async (content: string) => {
+      console.log(`[Sync Debug] addOfflineIdea called with content: "${content}"`);
       try {
         await addIdeaMutation({ content });
+        console.log("[Sync Debug] Successfully added offline idea to backend.");
         return true; // Indicate success
       } catch (error) {
-        console.error("Failed to add offline idea:", error);
+        console.error("[Sync Debug] Failed to add offline idea:", error);
         return false; // Indicate failure
       }
     };
