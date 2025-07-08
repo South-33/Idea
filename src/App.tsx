@@ -257,7 +257,6 @@ function Content({
       </Unauthenticated>
 
       <Authenticated>
-<<<<<<< HEAD
         {/* Conditionally render IdeasView or DreamsView */}
         {currentView === 'ideas' && (
           <IdeasView
@@ -275,19 +274,6 @@ function Content({
             deleteDream={deleteDream} // Pass delete mutation
           />
         )}
-=======
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch">
-          {ideas.map((idea) => (
-              <IdeaCard
-                key={idea._id}
-                idea={idea}
-                onDelete={handleDelete}
-                onFocus={() => setFocusedIdeaId(idea._id)} // Pass focus handler
-                isHidden={idea._id?.toString() === focusedIdeaId?.toString()} // Pass prop for conditional hiding
-              />
-            ))}
-        </div>
->>>>>>> 97f8eb8 (image preview /before adding audio input)
       </Authenticated>
        {/* The focused and create views are now rendered within IdeasView and DreamsView */}
     </div>

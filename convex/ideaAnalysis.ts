@@ -27,45 +27,30 @@ export const analyzeIdea = action({
       return;
     }
 
-<<<<<<< HEAD
-    // --- START REVISED PROMPT ---
-    const prompt = `
-You are an AI analyst specialized in evaluating ideas based on their potential for **positive world impact, helping people, and creativity/novelty**. 
-Your primary focus is NOT on immediate commercial viability or profit maximization, but on transformative potential. Keep in mind that these ideas are most likely 
-undeveloped and unfinished so be optimistic with the potential and think of what the idea could become but the feasibility should also be important as if 
-it's impossible with current state of the world then it's gonna be hard. But also think of how it could work and be a good idea if we can work it out somehow.
-=======
     const imageParts: Part[] = [];
     if (idea.imageId) {
       const imageUrl = await ctx.storage.getUrl(idea.imageId);
       if (imageUrl) {
-        try {
-          console.log(`Fetching image for idea ${args.ideaId} from ${imageUrl}`);
-          const response = await fetch(imageUrl);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch image: ${response.statusText}`);
-          }
-          const imageBuffer = await response.arrayBuffer();
-          const mimeType = response.headers.get("content-type");
-          if (!mimeType) {
-            throw new Error("Could not determine mime type from image response.");
-          }
+        const response = await fetch(imageUrl);
+        const imageBuffer = await response.arrayBuffer();
+        const mimeType = response.headers.get("content-type");
+        if (mimeType) {
           imageParts.push({
             inlineData: {
               data: Buffer.from(imageBuffer).toString("base64"),
               mimeType,
             },
           });
-          console.log(`Successfully processed image for idea ${args.ideaId}. Mime-type: ${mimeType}`);
-        } catch (error) {
-          console.error(`Failed to process image for idea ${args.ideaId}:`, error);
         }
       }
     }
 
+    // --- START REVISED PROMPT ---
     const promptText = `
-You are a scout for world-changing ideas, biased towards ambitious, high-risk, high-reward concepts. Your goal is to identify and elevate ideas with the potential for transformative positive impact, even if they seem unconventional or difficult to implement. You are critical of safe, incremental, or derivative ideas.
->>>>>>> 97f8eb8 (image preview /before adding audio input)
+You are an AI analyst specialized in evaluating ideas based on their potential for **positive world impact, helping people, and creativity/novelty**. 
+Your primary focus is NOT on immediate commercial viability or profit maximization, but on transformative potential. Keep in mind that these ideas are most likely 
+undeveloped and unfinished so be optimistic with the potential and think of what the idea could become but the feasibility should also be important as if 
+it's impossible with current state of the world then it's gonna be hard. But also think of how it could work and be a good idea if we can work it out somehow.
 
 **Your Task:**
 Analyze the idea provided. The idea consists of text and potentially an image.
@@ -109,12 +94,8 @@ Remember to be a discerning critic and a champion for bold, world-changing ideas
     const promptRequest = [promptText, ...imageParts];
 
     try {
-<<<<<<< HEAD
       // Specify the model - ensure you're using a capable model
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-05-20" });
-=======
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-04-17" });
->>>>>>> 97f8eb8 (image preview /before adding audio input)
 
       console.log(`Analyzing idea ${args.ideaId} with content: "${idea.content}"` + (imageParts.length > 0 ? " and 1 image." : "."));
 

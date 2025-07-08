@@ -157,7 +157,6 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
         ref={cardRef}
         className={`relative bg-white rounded-xl max-w-2xl w-full overflow-y-auto hide-scrollbar border-2 border-border-grey min-h-0 transition-all duration-300 ease-in-out ${isAnimatingIn ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
         style={{
-<<<<<<< HEAD
            ...focusedIdea.analysis?.score !== undefined && !isAnimatingIn ? { boxShadow: '0 0 120px 27px rgba(255, 255, 255, 0.5)' } : {}, // Keep the glow conditionally, but not when animating in
            boxShadow: isAnimatingIn ? '0 50px 75px -20px rgba(0, 0, 0, 0.3)' : (focusedIdea.analysis?.score !== undefined ? '0 0 120px 27px rgba(255, 255, 255, 0.5)' : 'none'), // Conditional box shadow based on animation state (more pronounced)
            transform: `scale(${scale}) ${isAnimatingIn ? 'translateZ(0px)' : 'translateZ(-180px)'}`, // Apply scale and translateZ transform based on animation state (increased lift)
@@ -167,13 +166,6 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
            transition: 'transform 0.15s ease-out, box-shadow 0.18s ease-out', // Smooth transition for transform and box-shadow
            maxHeight: cardMaxHeight !== null ? `${cardMaxHeight}px` : undefined, // Apply dynamic max height
            maxWidth: 'calc(48rem * 1.3)',
-=======
-          boxShadow: isAnimatingIn ? '0 25px 50px -12px rgba(0, 0, 0, 0.25)' : 'none',
-          maxHeight: cardMaxHeight !== null ? `${cardMaxHeight}px` : undefined,
-          maxWidth: 'calc(48rem * 1.3)',
-          transform: `scale(${scale})`,
-          transformOrigin: 'center',
->>>>>>> 97f8eb8 (image preview /before adding audio input)
         }}
         onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
