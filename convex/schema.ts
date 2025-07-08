@@ -4,6 +4,8 @@ import { authTables } from "@convex-dev/auth/server";
 
 const applicationTables = {
   ideas: defineTable({
+    imageId: v.optional(v.id("_storage")),
+
     userId: v.id("users"),
     content: v.string(),
     status: v.union(v.literal("pending"), v.literal("analyzed")),

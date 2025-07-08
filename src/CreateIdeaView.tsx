@@ -2,17 +2,19 @@ import React, { useState, useEffect, useRef } from 'react'; // Added useRef
 import { Id } from '../convex/_generated/dataModel'; // Import Id type
 import { api } from '../convex/_generated/api';
 import { toast } from 'sonner'; // For potential feedback
+import { useMutation } from 'convex/react';
 
 // Zoom Constants (copied from FocusedIdeaView)
 const MIN_SCALE = 0.5;
-const MAX_SCALE = 2.5;
-const ZOOM_LEVELS = [0.5, 1.0, 1.5, 2.0, 2.5];
+const MAX_SCALE = 1.5;
+const ZOOM_LEVELS = [0.5,0.75, 1.0, 1.25, 1.5];
 const SCROLL_SENSITIVITY = 0.15;
 
 // Define the expected type for the onAddIdea prop:
 // A function that takes { content: string } and returns a Promise resolving to the idea ID (string)
-type AddIdeaMutationType = (args: { content: string }) => Promise<Id<"ideas">>;
+type AddIdeaMutationType = (args: { content: string; imageId?: Id<"_storage"> }) => Promise<Id<"ideas">>;
 
+// Define the expected type for the CreateIdeaView component props
 type CreateIdeaViewProps = {
   onAddIdea: AddIdeaMutationType;
   onClose: () => void;
@@ -20,7 +22,11 @@ type CreateIdeaViewProps = {
 
 export function CreateIdeaView({ onAddIdea, onClose }: CreateIdeaViewProps) {
   const [ideaContent, setIdeaContent] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false); // Prevent double-clicks
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null); // Ref for file input
+    const [isSubmitting, setIsSubmitting] = useState(false); // Prevent double-clicks
+  const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   // Zoom State (copied from FocusedIdeaView)
   const [scale, setScale] = useState(1);
   const [zoomPercentage, setZoomPercentage] = useState(100);
@@ -72,24 +78,56 @@ export function CreateIdeaView({ onAddIdea, onClose }: CreateIdeaViewProps) {
   }, []); // Empty dependency array means this runs only on mount and unmount
 
 
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      setSelectedImage(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
   const handleAddClick = async () => {
     if (!ideaContent.trim()) {
-      toast.error("Idea content cannot be empty."); // Basic validation feedback
+      toast.error("Idea content cannot be empty.");
       return;
     }
-    if (isSubmitting) return; // Prevent multiple submissions
+    if (isSubmitting) return;
 
     setIsSubmitting(true);
     try {
-      await onAddIdea({ content: ideaContent });
-      // toast.success("Idea added and sent for analysis!"); // Removed success toast
+      let imageId: Id<"_storage"> | undefined = undefined;
+      // If an image is selected, upload it
+      if (selectedImage) {
+        // 1. Get a short-lived upload URL
+        const uploadUrl = await generateUploadUrl();
+
+        // 2. POST the file to the URL
+        const result = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": selectedImage.type },
+          body: selectedImage,
+        });
+
+        // Check if the upload was successful
+        if (!result.ok) {
+          // You can enhance error handling here, e.g., by reading the response
+          throw new Error(`Upload failed: ${await result.text()}`);
+        }
+
+        // 3. Get the storage ID from the response
+        const { storageId } = await result.json();
+        imageId = storageId;
+      }
+
+      // 4. Save the new idea with the imageId
+      await onAddIdea({ content: ideaContent, imageId });
+      
       onClose(); // Close the modal on success
     } catch (error) {
       console.error("Failed to add idea:", error);
       toast.error("Failed to add idea. Please try again.");
       setIsSubmitting(false); // Allow retry on error
     }
-    // No need to set isSubmitting back to false on success because the component unmounts
   };
 
   // Effect to handle wheel zoom on the zoom control element (copied from FocusedIdeaView)
@@ -148,10 +186,30 @@ export function CreateIdeaView({ onAddIdea, onClose }: CreateIdeaViewProps) {
               value={ideaContent}
               onChange={(e) => setIdeaContent(e.target.value)}
               placeholder="Enter your brilliant idea here..."
-              className="w-full p-3 border border-border-grey rounded-md text-dark-grey-text focus:outline-none focus:ring-2 focus:ring-border-grey focus:border-transparent min-h-[200px] resize-y" // Increased min-height, changed focus ring color
-              rows={8} // Increased default rows
+              className="w-full p-3 border border-border-grey rounded-md text-dark-grey-text focus:outline-none focus:ring-2 focus:ring-border-grey focus:border-transparent min-h-[200px] resize-y"
+              rows={8}
               autoFocus
             />
+            <div className="mt-4">
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handleImageSelect}
+                style={{ display: 'none' }}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full p-3 border-2 border-dashed border-border-grey rounded-md text-dark-grey-text hover:bg-gray-50 transition-colors"
+              >
+                Click to upload an image
+              </button>
+              {previewUrl && (
+                <div className="mt-4">
+                  <img src={previewUrl} alt="Preview" className="w-full rounded-md" />
+                </div>
+              )}
+            </div>
         </div>
 
          {/* Optional Close Button (Top Right - kept for convenience) */}
@@ -161,7 +219,7 @@ export function CreateIdeaView({ onAddIdea, onClose }: CreateIdeaViewProps) {
             aria-label="Close"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
           </button>
       </div>

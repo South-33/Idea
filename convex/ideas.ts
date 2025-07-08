@@ -4,7 +4,10 @@ import { api } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 export const addIdea = mutation({
-  args: { content: v.string() },
+  args: {
+    content: v.string(),
+    imageId: v.optional(v.id("_storage")),
+  },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
@@ -12,6 +15,7 @@ export const addIdea = mutation({
     const ideaId = await ctx.db.insert("ideas", {
       userId,
       content: args.content,
+      imageId: args.imageId,
       status: "pending",
       position: Date.now(), // Use timestamp for ordering
     });
@@ -55,11 +59,24 @@ export const listIdeas = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
 
-    return await ctx.db
+    const ideas = await ctx.db
       .query("ideas")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .order("desc")
       .collect();
+
+    // For each idea, generate a URL for the image if it exists
+    const ideasWithUrls = await Promise.all(
+      ideas.map(async (idea) => {
+        if (idea.imageId) {
+          const imageUrl = await ctx.storage.getUrl(idea.imageId);
+          return { ...idea, imageUrl };
+        }
+        return { ...idea, imageUrl: null };
+      })
+    );
+
+    return ideasWithUrls;
   },
 });
 
