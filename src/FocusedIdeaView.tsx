@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Id } from "../convex/_generated/dataModel";
 import { api } from "../convex/_generated/api";
 import { useAction, useMutation } from 'convex/react';
@@ -16,6 +18,7 @@ interface Idea {
     similarIdeas?: string;
   };
   status?: "pending" | "analyzed";
+  imageUrl?: string | null;
 }
 
 type FocusedIdeaViewProps = {
@@ -26,8 +29,8 @@ type FocusedIdeaViewProps = {
 };
 
 const MIN_SCALE = 0.5;
-const MAX_SCALE = 2.5;
-const ZOOM_LEVELS = [0.5, 1.0, 1.5, 2.0, 2.5];
+const MAX_SCALE = 1.5;
+const ZOOM_LEVELS = [0.5,0.75, 1.0, 1.25, 1.5];
 const SCROLL_SENSITIVITY = 0.15;
 
 export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: FocusedIdeaViewProps) {
@@ -65,19 +68,22 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
     };
   }, []);
 
-  // Effect to handle backdrop transition
+  // Effect to handle the mounting animation smoothly.
   useEffect(() => {
-    // Set isBackdropVisible to true after a short delay on mount
-    const timer = setTimeout(() => {
+    // We use requestAnimationFrame to ensure the component has been painted
+    // in its initial state (e.g., invisible) before we apply the classes that
+    // trigger the transition to the visible state. This prevents the
+    // "laggy" or "janky" feel on the first render.
+    const animationFrameId = requestAnimationFrame(() => {
       setIsBackdropVisible(true);
-    }, 50); // Small delay to ensure component is in DOM
+      setIsAnimatingIn(true);
+    });
 
-    // Cleanup function to set isBackdropVisible to false on unmount
+    // Cleanup function to cancel the frame if the component unmounts before it runs
     return () => {
-      setIsBackdropVisible(false);
-      clearTimeout(timer); // Clear the timer if component unmounts before delay
+      cancelAnimationFrame(animationFrameId);
     };
-  }, []); // Empty dependency array means this runs only on mount and unmount
+  }, []); // Empty dependency array ensures this runs only once on mount.
 
   // Handler for zoom slider
   const handleZoomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,32 +143,19 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
     };
   }, [scale]); // Add scale to dependency array so handleWheel always has the latest scale value
 
-  // Effect to handle the mounting/unmounting animation
-  useEffect(() => {
-    // Set isAnimatingIn to true after a short delay on mount
-    const timer = setTimeout(() => {
-      setIsAnimatingIn(true);
-    }, 50); // Small delay to ensure component is in DOM
 
-    // Cleanup function to set isAnimatingIn to false on unmount
-    return () => {
-      setIsAnimatingIn(false);
-      clearTimeout(timer); // Clear the timer if component unmounts before delay
-    };
-  }, []); // Empty dependency array means this runs only on mount and unmount
 
   return (
     <>
     <div
-      id="focused-idea-backdrop" // Added ID for mouseleave listener
+      id="focused-idea-backdrop"
       className={`fixed inset-0 bg-black flex justify-center items-center z-50 p-4 transition-all duration-500 ease-in-out ${isBackdropVisible ? 'bg-opacity-[0.2] backdrop-blur-sm' : 'bg-opacity-0 backdrop-blur-none'}`} // Conditionally apply opacity and blur, faster duration
-      onClick={onClose} // Close when clicking the backdrop
-      style={{ perspective: '1000px' }} // Add perspective for 3D transform
+      onClick={onClose}
     >
       {/* Outer Scrollable Container */}
       <div
-        ref={cardRef} // Attach the ref
-        className="relative bg-white rounded-xl max-w-2xl w-full overflow-y-auto hide-scrollbar border-2 border-border-grey min-h-0"
+        ref={cardRef}
+        className={`relative bg-white rounded-xl max-w-2xl w-full overflow-y-auto hide-scrollbar border-2 border-border-grey min-h-0 transition-all duration-300 ease-in-out ${isAnimatingIn ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
         style={{
            ...focusedIdea.analysis?.score !== undefined && !isAnimatingIn ? { boxShadow: '0 0 120px 27px rgba(255, 255, 255, 0.5)' } : {}, // Keep the glow conditionally, but not when animating in
            boxShadow: isAnimatingIn ? '0 50px 75px -20px rgba(0, 0, 0, 0.3)' : (focusedIdea.analysis?.score !== undefined ? '0 0 120px 27px rgba(255, 255, 255, 0.5)' : 'none'), // Conditional box shadow based on animation state (more pronounced)
@@ -174,7 +167,7 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
            maxHeight: cardMaxHeight !== null ? `${cardMaxHeight}px` : undefined, // Apply dynamic max height
            maxWidth: 'calc(48rem * 1.3)',
         }}
-        onClick={(e: React.MouseEvent) => e.stopPropagation()} // Prevent closing when clicking inside the card
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         {/* Inner Content Div - Apply scale transform here */}
         {/* This div contains the actual card content and is scaled */}
@@ -207,6 +200,17 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
               </span>
             </div>
 
+            {/* Display Image if available */}
+            {focusedIdea.imageUrl && (
+              <div className="my-4 rounded-lg overflow-hidden bg-gray-50 flex justify-center">
+                <img 
+                  src={focusedIdea.imageUrl} 
+                  alt="Idea visualization" 
+                  className="max-w-full h-auto object-contain max-h-[60vh]"
+                />
+              </div>
+            )}
+
             {/* Detailed Content */}
             <div className="space-y-3">
                {isEditing ? (
@@ -222,15 +226,21 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
                )}
                <div className="border-t border-gray-200 pt-3 mt-3">
                  <span className="text-xl text-dark-grey-text text-lg font-semibold">Reasoning:</span>
-                 <p className="text-dark-grey-text mt-1">{focusedIdea.analysis.reasoning}</p>
+                 <div className="prose prose-sm max-w-none text-dark-grey-text mt-1">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{focusedIdea.analysis.reasoning}</ReactMarkdown>
+                 </div>
                </div>
                <div className="border-t border-gray-200 pt-3 mt-3">
                  <span className="text-xl text-dark-grey-text text-lg font-semibold">Feasibility:</span>
-                 <p className="text-dark-grey-text mt-1">{focusedIdea.analysis.feasibility}</p>
+                 <div className="prose prose-sm max-w-none text-dark-grey-text mt-1">
+                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{focusedIdea.analysis.feasibility}</ReactMarkdown>
+                 </div>
                </div>
                <div className="border-t border-gray-200 pt-3 mt-3">
                  <span className="text-xl text-dark-grey-text text-lg font-semibold">Similar Ideas:</span>
-                 <p className="text-dark-grey-text mt-1">{focusedIdea.analysis.similarIdeas}</p>
+                 <div className="prose prose-sm max-w-none text-dark-grey-text mt-1">
+                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{focusedIdea.analysis.similarIdeas}</ReactMarkdown>
+                 </div>
                </div>
             </div>
           </div>
@@ -282,14 +292,7 @@ export function FocusedIdeaView({ focusedIdea, allIdeas, onClose, onNavigate }: 
               setScale(newScale);
               setZoomPercentage(Math.round(newScale * 100));
             }}
-            onWheel={(e) => {
-              e.preventDefault(); // Prevent default scroll behavior
-              e.stopPropagation(); // Prevent backdrop click
-              const delta = e.deltaY < 0 ? SCROLL_SENSITIVITY : -SCROLL_SENSITIVITY; // Determine zoom direction and step (increased sensitivity)
-              const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale + delta));
-              setScale(newScale);
-              setZoomPercentage(Math.round(newScale * 100));
-            }}
+
             title="Adjust Zoom (Click to snap, Scroll to fine-tune)"
           >
             <span className="font-semibold">{zoomPercentage}%</span>

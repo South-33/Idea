@@ -21,6 +21,7 @@ export default function App() {
   const loggedInUser = useQuery(api.auth.loggedInUser);
   const queryIdeas = useQuery(api.ideas.listIdeas) || []; // Fetch ideas in App
   const queryDreams = useQuery(api.dreams.listDreams) || []; // Fetch dreams in App
+  const addIdeaMutation = useMutation(api.ideas.addIdea);
 
   // Use local state for optimistic updates
   const [localIdeas, setLocalIdeas] = useState(queryIdeas);
@@ -38,6 +39,18 @@ export default function App() {
       setLocalDreams(queryDreams);
     }
   }, [queryDreams]);
+
+  useEffect(() => {
+    (window as any).addOfflineIdea = async (content: string) => {
+      try {
+        await addIdeaMutation({ content });
+        return true; // Indicate success
+      } catch (error) {
+        console.error("Failed to add offline idea:", error);
+        return false; // Indicate failure
+      }
+    };
+  }, [addIdeaMutation]);
 
   const deleteIdeaMutation = useMutation(api.ideas.deleteIdea);
 

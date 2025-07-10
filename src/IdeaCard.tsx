@@ -15,13 +15,12 @@ type Idea = {
     summary?: string;
   };
   status?: "pending" | "analyzed"; // Restore status
+  imageUrl?: string | null; // Add imageUrl to the type
 };
 
 type IdeaCardProps = {
   idea: Idea;
   onDelete: (id: Id<"ideas">) => void;
-  // isExpanded: boolean;      // Removed
-  // onToggleExpand: () => void; // Removed
   onFocus: () => void;        // Added onFocus prop
   isHidden: boolean; // Added prop for conditional hiding
 };
@@ -32,7 +31,7 @@ export function IdeaCard({ idea, onDelete, onFocus, isHidden }: IdeaCardProps) {
   return (
     <div
       key={idea._id}
-      className={`relative bg-white rounded-xl p-6 shadow-md overflow-hidden border border-border-grey ${isHidden ? 'invisible' : 'transition-all duration-300'}`} // Conditionally add invisible class and remove transition
+      className={`relative bg-white rounded-xl p-6 shadow-md overflow-hidden border border-border-grey flex flex-col ${isHidden ? 'invisible' : 'transition-all duration-300'}`} // Conditionally add invisible class and remove transition
     >
       {/* Delete Button - Top Right */}
       <button
@@ -76,11 +75,16 @@ export function IdeaCard({ idea, onDelete, onFocus, isHidden }: IdeaCardProps) {
             </div>
             {/* AI Summary (non-expanded) */}
             {/* Always show summary if available */}
-            {idea.analysis?.summary && (
-             <p className="text-sm text-dark-grey-text mt-2">
-               {idea.analysis.summary}
-             </p>
-           )}
+            <div className="flex items-start gap-4 mt-2">
+              {idea.imageUrl && (
+                <img src={idea.imageUrl} alt="Idea thumbnail" className="w-16 h-16 object-cover rounded-md flex-shrink-0" />
+              )}
+              {idea.analysis?.summary && (
+                <p className="text-sm text-dark-grey-text flex-1">
+                  {idea.analysis.summary}
+                </p>
+              )}
+            </div>
             {/* Removed collapsible content div */}
           </div>
         ) : (
