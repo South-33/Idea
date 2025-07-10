@@ -1,22 +1,10 @@
 import { Id } from "../convex/_generated/dataModel";
-import { api } from "../convex/_generated/api"; // Assuming types might be needed, like Idea type
-import { useMutation } from "convex/react"; // If delete is handled inside, but let's pass handler
+import { api } from "../convex/_generated/api";
+import { useQuery } from 'convex/react';
+import { SpeakerWaveIcon } from '@heroicons/react/24/outline';
 
-// Define the expected shape of the 'idea' prop based on original App.tsx usage
-type Idea = {
-  _id: Id<"ideas">;
-  content: string;
-  analysis?: {
-    title?: string;
-    score: number;
-    reasoning?: string;
-    feasibility?: string;
-    similarIdeas?: string;
-    summary?: string;
-  };
-  status?: "pending" | "analyzed"; // Restore status
-  imageUrl?: string | null; // Add imageUrl to the type
-};
+// Derive the Idea type from the listIdeas query to ensure it's always in sync with the backend
+type Idea = NonNullable<ReturnType<typeof useQuery<typeof api.ideas.listIdeas>>>[number];
 
 type IdeaCardProps = {
   idea: Idea;
@@ -28,10 +16,11 @@ type IdeaCardProps = {
 export function IdeaCard({ idea, onDelete, onFocus, isHidden }: IdeaCardProps) { // Updated props to accept isHidden
   // Determine card background based on score (subtler than before)
   const score = idea.analysis?.score;
+
   return (
     <div
       key={idea._id}
-      className={`relative bg-white rounded-xl p-6 shadow-md overflow-hidden border border-border-grey flex flex-col ${isHidden ? 'invisible' : 'transition-all duration-300'}`} // Conditionally add invisible class and remove transition
+      className={`relative bg-white rounded-xl p-6 shadow-md overflow-hidden border border-border-grey flex flex-col ${idea.status === 'analyzing' ? 'self-start' : ''} ${isHidden ? 'invisible' : 'transition-all duration-300 hover:shadow-xl hover:-translate-y-1'}`}
     >
       {/* Delete Button - Top Right */}
       <button
@@ -51,8 +40,8 @@ export function IdeaCard({ idea, onDelete, onFocus, isHidden }: IdeaCardProps) {
       </div>
 
       {/* Content - Make clickable for expansion */}
-      <div className="cursor-pointer" onClick={onFocus}> {/* Changed onClick handler */}
-        {idea.status === "pending" ? (
+      <div className="cursor-pointer flex-grow" onClick={onFocus}> {/* Changed onClick handler */}
+        {idea.status === "analyzing" ? (
           <div className="flex items-center gap-2 text-dark-grey-text">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-dark-grey-text"></div>
             Analyzing...
@@ -62,7 +51,12 @@ export function IdeaCard({ idea, onDelete, onFocus, isHidden }: IdeaCardProps) {
             {/* Always visible Title and Score */}
             {/* Always show title/score with border */}
             <div className="flex items-center justify-between border-b border-gray-200 pb-3 mb-3">
-              <span className="text-lg text-dark-grey-text font-semibold">{idea.analysis.title}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-lg text-dark-grey-text font-semibold">{idea.analysis.title}</span>
+                {idea.audioUrl && (
+                  <SpeakerWaveIcon className="w-5 h-5 text-gray-400 mr-2" title="This idea has an audio recording" />
+                )}
+              </div>
               <span className={`text-sm bg-gray-75 rounded-full px-2.5 py-0.5 border shadow-sm ${
                 idea.status === "analyzed" && score !== undefined
                   ? score >= 8 ? 'border-green-300'
@@ -70,22 +64,23 @@ export function IdeaCard({ idea, onDelete, onFocus, isHidden }: IdeaCardProps) {
                   : 'border-red-300'
                   : 'border-border-grey' // Default border color if not analyzed or score is undefined
               }`}>
-                {idea.analysis.score}/10
+                {idea.analysis.score?.toFixed(1)}
               </span>
             </div>
-            {/* AI Summary (non-expanded) */}
-            {/* Always show summary if available */}
+            {/* Image and Summary/Transcription */}
             <div className="flex items-start gap-4 mt-2">
               {idea.imageUrl && (
                 <img src={idea.imageUrl} alt="Idea thumbnail" className="w-16 h-16 object-cover rounded-md flex-shrink-0" />
               )}
-              {idea.analysis?.summary && (
-                <p className="text-sm text-dark-grey-text flex-1">
-                  {idea.analysis.summary}
-                </p>
-              )}
+              <div className="text-sm text-dark-grey-text flex-1">
+                {idea.analysis?.summary && (
+                  <p>{idea.analysis.summary}</p>
+                )}
+                {idea.transcription && (
+                  <p className="mt-2 italic text-gray-500"><strong>Transcription:</strong> {idea.transcription}</p>
+                )}
+              </div>
             </div>
-            {/* Removed collapsible content div */}
           </div>
         ) : (
           // Fallback if analyzed but no analysis data somehow

@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react'; // Added useRef
 import { Id } from '../convex/_generated/dataModel'; // Import Id type
 import { api } from '../convex/_generated/api';
 import { toast } from 'sonner'; // For potential feedback
-import { useMutation } from 'convex/react';
+import { MicrophoneIcon, TrashIcon, SpeakerWaveIcon } from '@heroicons/react/24/outline';
+import { useAction, useMutation } from 'convex/react';
 
 // Zoom Constants (copied from FocusedIdeaView)
 const MIN_SCALE = 0.5;
@@ -10,72 +11,55 @@ const MAX_SCALE = 1.5;
 const ZOOM_LEVELS = [0.5,0.75, 1.0, 1.25, 1.5];
 const SCROLL_SENSITIVITY = 0.15;
 
-// Define the expected type for the onAddIdea prop:
-// A function that takes { content: string } and returns a Promise resolving to the idea ID (string)
-type AddIdeaMutationType = (args: { content: string; imageId?: Id<"_storage"> }) => Promise<Id<"ideas">>;
-
 // Define the expected type for the CreateIdeaView component props
 type CreateIdeaViewProps = {
-  onAddIdea: AddIdeaMutationType;
   onClose: () => void;
 };
 
-export function CreateIdeaView({ onAddIdea, onClose }: CreateIdeaViewProps) {
+export function CreateIdeaView({ onClose }: CreateIdeaViewProps) {
   const [ideaContent, setIdeaContent] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null); // Ref for file input
     const [isSubmitting, setIsSubmitting] = useState(false); // Prevent double-clicks
+  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
+  // The onAddIdea prop will be replaced with a more comprehensive mutation
+  const createIdea = useMutation(api.ideas.createIdea); // Assuming a new mutation
+
+  // State for audio recording
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   // Zoom State (copied from FocusedIdeaView)
   const [scale, setScale] = useState(1);
   const [zoomPercentage, setZoomPercentage] = useState(100);
   const zoomControlRef = useRef<HTMLDivElement>(null); // Ref for zoom control
 
   // Animation states and ref
-  const [isAnimatingIn, setIsAnimatingIn] = useState(false);
   const [isBackdropVisible, setIsBackdropVisible] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null); // Ref for the card element
 
-  // Effect to prevent background scroll when the modal is open
+  // Effect to prevent background scroll and trigger animation
   useEffect(() => {
+    // Prevent background scroll
     document.body.style.overflow = 'hidden';
     document.body.style.position = 'fixed'; // Prevent scroll jump
     document.body.style.width = '100%';
+
+    // Trigger the animation after the component has mounted
+    const animationFrameId = requestAnimationFrame(() => {
+      setIsBackdropVisible(true);
+    });
+
+    // Cleanup function
     return () => {
       document.body.style.overflow = 'unset';
       document.body.style.position = '';
       document.body.style.width = '';
+      cancelAnimationFrame(animationFrameId);
     };
-  }, []);
-
-  // Effect to handle backdrop transition
-  useEffect(() => {
-    // Set isBackdropVisible to true after a short delay on mount
-    const timer = setTimeout(() => {
-      setIsBackdropVisible(true);
-    }, 50); // Small delay to ensure component is in DOM
-
-    // Cleanup function to set isBackdropVisible to false on unmount
-    return () => {
-      setIsBackdropVisible(false);
-      clearTimeout(timer); // Clear the timer if component unmounts before delay
-    };
-  }, []); // Empty dependency array means this runs only on mount and unmount
-
-  // Effect to handle the mounting/unmounting animation for the card
-   useEffect(() => {
-    // Set isAnimatingIn to true after a short delay on mount
-    const timer = setTimeout(() => {
-      setIsAnimatingIn(true);
-    }, 50); // Small delay to ensure component is in DOM
-
-    // Cleanup function to set isAnimatingIn to false on unmount
-    return () => {
-      setIsAnimatingIn(false);
-      clearTimeout(timer); // Clear the timer if component unmounts before delay
-    };
-  }, []); // Empty dependency array means this runs only on mount and unmount
+  }, []); // Empty dependency array ensures this runs only once on mount.
 
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,46 +71,85 @@ export function CreateIdeaView({ onAddIdea, onClose }: CreateIdeaViewProps) {
   };
 
   const handleAddClick = async () => {
-    if (!ideaContent.trim()) {
-      toast.error("Idea content cannot be empty.");
-      return;
-    }
+
     if (isSubmitting) return;
 
     setIsSubmitting(true);
     try {
       let imageId: Id<"_storage"> | undefined = undefined;
-      // If an image is selected, upload it
-      if (selectedImage) {
-        // 1. Get a short-lived upload URL
-        const uploadUrl = await generateUploadUrl();
+      let audioId: Id<"_storage"> | undefined = undefined;
 
-        // 2. POST the file to the URL
+      // 1. Upload the image if one was selected
+      if (selectedImage) {
+        const uploadUrl = await generateUploadUrl();
         const result = await fetch(uploadUrl, {
           method: "POST",
           headers: { "Content-Type": selectedImage.type },
           body: selectedImage,
         });
-
-        // Check if the upload was successful
-        if (!result.ok) {
-          // You can enhance error handling here, e.g., by reading the response
-          throw new Error(`Upload failed: ${await result.text()}`);
-        }
-
-        // 3. Get the storage ID from the response
         const { storageId } = await result.json();
         imageId = storageId;
       }
 
-      // 4. Save the new idea with the imageId
-      await onAddIdea({ content: ideaContent, imageId });
-      
+      // 2. Upload the audio if one was recorded
+      if (recordedAudio) {
+        const uploadUrl = await generateUploadUrl();
+        const result = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": "audio/webm" },
+          body: recordedAudio,
+        });
+        const { storageId } = await result.json();
+        audioId = storageId;
+      }
+
+      // 3. Create the idea with all the parts
+      await createIdea({
+        content: ideaContent,
+        imageId,
+        audioId,
+      });
+
       onClose(); // Close the modal on success
     } catch (error) {
       console.error("Failed to add idea:", error);
       toast.error("Failed to add idea. Please try again.");
       setIsSubmitting(false); // Allow retry on error
+    }
+  };
+
+  const handleMicClick = () => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+    } else if (recordedAudio) {
+      // If audio is already recorded, this button acts as a delete button
+      setRecordedAudio(null);
+    } else {
+      // Start a new recording
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          const recorder = new MediaRecorder(stream);
+          mediaRecorderRef.current = recorder;
+          audioChunksRef.current = [];
+
+          recorder.ondataavailable = event => {
+            audioChunksRef.current.push(event.data);
+          };
+
+          recorder.onstop = () => {
+            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+            setRecordedAudio(audioBlob);
+            stream.getTracks().forEach(track => track.stop());
+          };
+
+          recorder.start();
+          setIsRecording(true);
+        })
+        .catch(error => {
+          console.error('Error starting recording:', error);
+          toast.error("Microphone access denied or not available.");
+        });
     }
   };
 
@@ -158,37 +181,42 @@ export function CreateIdeaView({ onAddIdea, onClose }: CreateIdeaViewProps) {
   return (
     // Backdrop - Style copied from FocusedIdeaView
     <div
-      id="create-idea-backdrop" // Added ID
-      className={`fixed inset-0 bg-black flex justify-center items-center z-50 p-4 transition-all duration-500 ease-in-out ${isBackdropVisible ? 'bg-opacity-[0.2] backdrop-blur-sm' : 'bg-opacity-0 backdrop-blur-none'}`} // Conditionally apply opacity and blur, faster duration
-      onClick={onClose} // Close when clicking the backdrop
-      style={{ perspective: '1000px' }} // Add perspective for 3D transform
+      className={`fixed inset-0 bg-black/20 backdrop-blur-sm flex justify-center items-center z-50 p-4 transition-opacity duration-500 ease-in-out ${isBackdropVisible ? 'opacity-100' : 'opacity-0'}`}
+      onClick={onClose}
     >
-      {/* Main Card Container - Made larger and applying scale transform */}
+      {/* Main Card Container - Applying scale transform */}
       <div
-        ref={cardRef} // Attach the ref
-        className="relative bg-white rounded-xl w-full max-w-2xl border-2 border-border-grey overflow-hidden flex flex-col shadow-lg" // Adjusted max-w to match FocusedIdeaView
+        ref={cardRef}
+        className={`relative bg-white rounded-xl w-full max-w-2xl border-2 border-border-grey overflow-hidden flex flex-col shadow-lg transform transition-all duration-500 ease-in-out ${isBackdropVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
         onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside the modal
         style={{
-             maxHeight: '85vh',
-             transform: `scale(${scale}) ${isAnimatingIn ? 'translateZ(0px)' : 'translateZ(-90px)'}`, // Apply scale and translateZ transform based on animation state
-             transformOrigin: 'center', // Scale from center
-             transformStyle: 'preserve-3d', // Preserve 3D transformations for children
-             backfaceVisibility: 'hidden', // Hide backface during transform
-             transition: 'transform 0.18s ease-out, box-shadow 0.25s ease-out', // Add transition for transform and box-shadow
-             maxWidth: 'calc(48rem * 1.3)', // Added to match FocusedIdeaView proportion
-         }}
+          maxHeight: '85vh',
+          transform: `scale(${scale})`,
+        }}
       >
         {/* Inner Content Area */}
         <div className="p-6 flex-grow overflow-y-auto" style={{ transform: 'translateZ(0)', textRendering: 'optimizeLegibility' }}> {/* Padding moved here, allow content to scroll, Added transform and textRendering */}
-            <h2 className="text-xl font-semibold text-dark-grey-text mb-4">Create a New Idea</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-dark-grey-text">Create a New Idea</h2>
+              {/* Microphone Button */}
+              <button
+                onClick={(e) => { e.stopPropagation(); handleMicClick(); }}
+                className={`p-2 rounded-full hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all ${isRecording ? 'text-red-500 animate-pulse' : recordedAudio ? 'text-blue-500' : 'text-dark-grey-text'}`}
+                title={isRecording ? "Stop Recording" : recordedAudio ? "Discard Recording" : "Start Recording"}
+                disabled={isSubmitting}
+              >
+                {recordedAudio ? <TrashIcon className="w-6 h-6" /> : <MicrophoneIcon className="w-6 h-6" />}
+              </button>
+            </div>
 
             <textarea
               value={ideaContent}
               onChange={(e) => setIdeaContent(e.target.value)}
-              placeholder="Enter your brilliant idea here..."
+              placeholder="Enter your brilliant idea here, or use the mic to record."
               className="w-full p-3 border border-border-grey rounded-md text-dark-grey-text focus:outline-none focus:ring-2 focus:ring-border-grey focus:border-transparent min-h-[200px] resize-y"
               rows={8}
               autoFocus
+              disabled={isRecording}
             />
             <div className="mt-4">
               <input
@@ -200,7 +228,8 @@ export function CreateIdeaView({ onAddIdea, onClose }: CreateIdeaViewProps) {
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full p-3 border-2 border-dashed border-border-grey rounded-md text-dark-grey-text hover:bg-gray-50 transition-colors"
+                disabled={isRecording}
+                className="w-full p-3 border-2 border-dashed border-border-grey rounded-md text-dark-grey-text hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Click to upload an image
               </button>
@@ -209,19 +238,20 @@ export function CreateIdeaView({ onAddIdea, onClose }: CreateIdeaViewProps) {
                   <img src={previewUrl} alt="Preview" className="w-full rounded-md" />
                 </div>
               )}
+
+              {/* Audio Preview */}
+              {recordedAudio && (
+                <div className="mt-4 p-3 border-2 border-dashed border-border-grey rounded-md flex items-center gap-4">
+                    <SpeakerWaveIcon className="w-6 h-6 text-dark-grey-text flex-shrink-0" />
+                    <audio controls src={URL.createObjectURL(recordedAudio)} className="w-full">
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+              )}
             </div>
         </div>
 
-         {/* Optional Close Button (Top Right - kept for convenience) */}
-         <button
-            onClick={onClose}
-            className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 z-10" // Ensure it's above content
-            aria-label="Close"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-          </button>
+
       </div>
 
       {/* Floating Toolbar - Style copied from FocusedIdeaView */}
@@ -237,6 +267,8 @@ export function CreateIdeaView({ onAddIdea, onClose }: CreateIdeaViewProps) {
                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
              </svg>
            </button>
+
+
 
            {/* Functional Zoom Control (copied & adapted from FocusedIdeaView) */}
            <div
@@ -259,7 +291,7 @@ export function CreateIdeaView({ onAddIdea, onClose }: CreateIdeaViewProps) {
           {/* Add Idea Button */}
           <button
             onClick={(e) => { e.stopPropagation(); handleAddClick(); }}
-            disabled={isSubmitting || !ideaContent.trim()} // Disable if submitting or empty
+            disabled={isSubmitting || !ideaContent.trim() || isRecording}
             className="p-2 rounded-full hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-opacity text-dark-grey-text"
             title="Add Idea"
           >

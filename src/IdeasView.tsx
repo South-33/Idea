@@ -53,7 +53,7 @@ export function IdeasView({ ideas, isCreatingIdea, onCloseCreateIdeaView, delete
   return (
     <>
       <Authenticated>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch">
           {ideas.map((idea) => (
             <IdeaCard
               key={idea._id}
